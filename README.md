@@ -2,6 +2,9 @@
 
 CLI tools for Splunk 9.2.2 TA development and maintenance.
 
+[![CI](https://github.com/your-org/bydefault/actions/workflows/ci.yml/badge.svg)](https://github.com/your-org/bydefault/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/your-org/bydefault/branch/main/graph/badge.svg)](https://codecov.io/gh/your-org/bydefault)
+
 ## Overview
 
 byDefault provides a suite of command-line tools to assist Splunk developers in creating and maintaining Technology Add-ons (TAs) for Splunk 9.2.2. The tools are designed with security and maintainability in mind.
