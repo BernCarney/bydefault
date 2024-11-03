@@ -6,6 +6,17 @@ CLI tools for Splunk 9.2.2 TA development and maintenance.
 
 byDefault provides a suite of command-line tools to assist Splunk developers in creating and maintaining Technology Add-ons (TAs) for Splunk 9.2.2. The tools are designed with security and maintainability in mind.
 
+## Features
+
+- **Configuration Management**
+  - Merge local configurations into default configurations
+  - Supports common Splunk configuration files (props.conf, transforms.conf, etc.)
+  - Handles metadata merging (local.meta to default.meta)
+
+- **Version Management**
+  - Update version numbers across multiple TAs
+  - Automatic version detection and validation
+
 ## Requirements
 
 - Python 3.8 or higher
@@ -35,7 +46,48 @@ byDefault provides a suite of command-line tools to assist Splunk developers in 
     uv pip install -r requirements.txt
     ```
 
-## Development Setup
+## Usage
+
+### Merging Local Configurations
+
+To merge local configurations into default:
+
+```bash
+bydefault merge
+```
+
+This will:
+
+- Merge all supported configuration files from `local/` into `default/`
+- Merge `metadata/local.meta` into `metadata/default.meta`
+- Preserve existing default configurations while updating with local changes
+
+### Managing Versions
+
+To update the version across all TAs in the current directory:
+
+```bash
+bydefault version <new_version>
+```
+
+Example:
+
+```bash
+bydefault version 2.0.0
+```
+
+## Supported Configuration Files
+
+- props.conf
+- transforms.conf
+- inputs.conf
+- app.conf
+- eventtypes.conf
+- tags.conf
+- fields.conf
+- macros.conf
+
+## Development
 
 1. Install development dependencies:
 
@@ -61,13 +113,6 @@ byDefault provides a suite of command-line tools to assist Splunk developers in 
     ruff format .
     ```
 
-## Usage
-
-Basic usage example:
-    ```bash
-    bydefault --help
-    ```
-
 ## Security
 
 This tool is designed to work in environments containing sensitive information. Please follow these security guidelines:
@@ -76,6 +121,7 @@ This tool is designed to work in environments containing sensitive information. 
 - Review all dependencies before installation
 - Do not store sensitive information in configuration files
 - Use appropriate access controls for any generated files
+- Back up configurations before performing merges
 
 ## License
 
