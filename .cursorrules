@@ -1,0 +1,32 @@
+{
+  "name": "byDefault",
+  "description": "A Python application with command line tools for Splunk 9.2.2 developers using UV for package and venv management, Ruff for linting and formatting, and tested with pytest.",
+  "rules": [
+    {
+      "context": "Python CLI Development",
+      "instructions": [
+        "Use UV for package and venv management. Ensure package requirements and dependencies are defined in a way that supports UV.",
+        "Utilize Ruff for linting and formatting. Follow PEP 8 style guidelines for Python code.",
+        "Include comprehensive docstrings for all functions and classes to assure maintainability and understanding.",
+        "Testing should be exclusively with pytest. Do not require unittests.",
+        "Security, clarity, and maintainability must be prioritized across all development activities."
+      ]
+    },
+    {
+      "context": "Markdown and Documentation",
+      "instructions": [
+        "Ensure README.md is in GitHub flavored markdown and is structured to avoid breaking Cursor's functionality, especially with codeblocks.",
+        "Include clear usage instructions and examples for the CLI tools.",
+        "Document all major classes and functions using docstrings."
+      ]
+    },
+    {
+      "context": "CI/CD and Deployment",
+      "instructions": [
+        "Implement CI/CD pipelines using GitHub Actions.",
+        "Ensure the project is set up for packaging and distribution as a UV tool.",
+        "Deploy the package in a private enterprise GitHub repository."
+      ]
+    }
+  ]
+}
