@@ -10,7 +10,9 @@ select = [
     "S",  # flake8-bandit
     "I",  # isort
 ]
-ignore = []
+ignore = [
+    "S101",  # Use of assert detected (pytest-style assertions are okay)
+]
 
 [format]
 quote-style = "double"
