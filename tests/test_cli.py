@@ -1,41 +1,6 @@
 """Tests for CLI functionality."""
 
-import pytest
-from pathlib import Path
 from bydefault.cli import main
-
-
-@pytest.fixture
-def temp_ta_structure(tmp_path):
-    """Create a temporary TA structure for testing."""
-    ta_root = tmp_path / "TA-test"
-    local_dir = ta_root / "local"
-    default_dir = ta_root / "default"
-    meta_dir = ta_root / "metadata"
-
-    # Create directories
-    local_dir.mkdir(parents=True)
-    default_dir.mkdir(parents=True)
-    meta_dir.mkdir(parents=True)
-
-    # Create test files
-    local_props = local_dir / "props.conf"
-    local_props.write_text(
-        """
-[test_sourcetype]
-TRANSFORMS-test = test_transform
-    """.strip()
-    )
-
-    app_conf = default_dir / "app.conf"
-    app_conf.write_text(
-        """
-[launcher]
-version = 1.0.0
-    """.strip()
-    )
-
-    return tmp_path
 
 
 def test_main_no_args():
@@ -50,25 +15,68 @@ def test_main_invalid_command():
     assert result == 1
 
 
-def test_merge_command(temp_ta_structure, monkeypatch):
+def test_merge_command(complete_ta_structure, monkeypatch):
     """Test merge command."""
-    monkeypatch.chdir(temp_ta_structure)
+    monkeypatch.chdir(complete_ta_structure)
     result = main(["merge"])
     assert result == 0
 
 
-def test_version_command_no_version(temp_ta_structure, monkeypatch):
+def test_version_command_no_version(tmp_path, complete_ta_structure, monkeypatch):
     """Test version command without version argument."""
-    monkeypatch.chdir(temp_ta_structure)
+    # Create a second TA for version testing
+    ta2_path = tmp_path / "TA-test2"
+    ta2_path.mkdir(parents=True)
+    (ta2_path / "default").mkdir(parents=True)
+    app_conf = ta2_path / "default" / "app.conf"
+    app_conf.write_text(
+        """
+[launcher]
+version = 1.0.0
+
+[package]
+id = TA-test2
+    """.strip()
+    )
+
+    # Move complete_ta_structure to tmp_path
+    complete_ta_structure.rename(tmp_path / complete_ta_structure.name)
+
+    monkeypatch.chdir(tmp_path)
     result = main(["version"])
     assert result == 1
 
 
-def test_version_command(temp_ta_structure, monkeypatch):
+def test_version_command(tmp_path, complete_ta_structure, monkeypatch):
     """Test version command."""
-    monkeypatch.chdir(temp_ta_structure)
+    # Create a second TA for version testing
+    ta2_path = tmp_path / "TA-test2"
+    ta2_path.mkdir(parents=True)
+    (ta2_path / "default").mkdir(parents=True)
+    app_conf = ta2_path / "default" / "app.conf"
+    app_conf.write_text(
+        """
+[launcher]
+version = 1.0.0
+
+[package]
+id = TA-test2
+    """.strip()
+    )
+
+    # Move complete_ta_structure to tmp_path
+    complete_ta_structure.rename(tmp_path / complete_ta_structure.name)
+
+    monkeypatch.chdir(tmp_path)
     result = main(["version", "2.0.0"])
     assert result == 0
+
+    # Verify version was updated in both TAs
+    for ta_name in ["TA-test", "TA-test2"]:
+        app_conf = tmp_path / ta_name / "default" / "app.conf"
+        with open(app_conf) as f:
+            content = f.read()
+            assert "version = 2.0.0" in content
 
 
 def test_merge_command_no_local_configs(tmp_path, monkeypatch):
@@ -76,3 +84,11 @@ def test_merge_command_no_local_configs(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     result = main(["merge"])
     assert result == 1  # Should fail because no TA structure exists
+
+
+def test_merge_command_with_no_meta(complete_ta_structure, monkeypatch):
+    """Test merge command when local.meta doesn't exist."""
+    monkeypatch.chdir(complete_ta_structure)
+    (complete_ta_structure / "metadata" / "local.meta").unlink()  # Remove local.meta
+    result = main(["merge"])
+    assert result == 0  # Missing meta is not a failure

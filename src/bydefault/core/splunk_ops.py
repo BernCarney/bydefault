@@ -1,9 +1,8 @@
 """Operations for managing Splunk TA configurations."""
 
-from pathlib import Path
-from typing import List, Tuple, Dict, Set
-import shutil
 import configparser
+from pathlib import Path
+from typing import Set, Tuple
 
 
 class SplunkConfManager:
@@ -18,6 +17,7 @@ class SplunkConfManager:
         "tags.conf",
         "fields.conf",
         "macros.conf",
+        "web.conf",
     }
 
     def __init__(self, ta_path: Path):
@@ -75,23 +75,29 @@ class SplunkConfManager:
 
         default_path = self.default_path / local_path.name
 
-        # Read configurations
-        local_conf = self.read_conf_file(local_path)
-        default_conf = self.read_conf_file(default_path)
-
-        # Merge sections from local to default
-        for section in local_conf.sections():
-            if not default_conf.has_section(section):
-                default_conf.add_section(section)
-
-            for key, value in local_conf.items(section):
-                default_conf.set(section, key, value)
-
-        # Create default directory if it doesn't exist
-        self.default_path.mkdir(exist_ok=True)
-
-        # Write merged configuration
         try:
+            # Read configurations
+            local_conf = self.read_conf_file(local_path)
+            if not local_conf.sections():  # Check if file is valid
+                return (
+                    False,
+                    f"Failed to merge {local_path.name}: Invalid configuration format",
+                )
+
+            default_conf = self.read_conf_file(default_path)
+
+            # Merge sections from local to default
+            for section in local_conf.sections():
+                if not default_conf.has_section(section):
+                    default_conf.add_section(section)
+
+                for key, value in local_conf.items(section):
+                    default_conf.set(section, key, value)
+
+            # Create default directory if it doesn't exist
+            self.default_path.mkdir(exist_ok=True)
+
+            # Write merged configuration
             with open(default_path, "w", encoding="utf-8") as f:
                 default_conf.write(f)
             return True, f"Successfully merged {local_path.name}"

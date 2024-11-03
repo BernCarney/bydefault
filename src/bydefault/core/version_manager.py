@@ -1,8 +1,7 @@
 """Version management for Splunk TAs."""
 
-import json
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 
 def read_ta_version(ta_path: Path) -> Optional[str]:
@@ -57,14 +56,29 @@ def update_ta_version(ta_path: Path, new_version: str) -> bool:
         with open(app_conf, "r") as f:
             lines = f.readlines()
 
+        # Verify file has valid sections
+        has_launcher = False
+        for line in lines:
+            if line.strip() == "[launcher]":
+                has_launcher = True
+                break
+
+        if not has_launcher:
+            return False
+
         # Update version
         in_launcher = False
+        version_updated = False
         for i, line in enumerate(lines):
             if line.strip() == "[launcher]":
                 in_launcher = True
             elif in_launcher and line.strip().startswith("version"):
                 lines[i] = f"version = {new_version}\n"
+                version_updated = True
                 break
+
+        if not version_updated:
+            return False
 
         # Write back
         with open(app_conf, "w") as f:

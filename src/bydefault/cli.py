@@ -42,11 +42,14 @@ def merge_command(path: Path) -> int:
         if not merge_success:
             success = False
 
-    # Merge metadata
-    meta_success, message = manager.merge_meta()
-    print(message)
-    if not meta_success:
-        success = False
+    # Merge metadata if it exists
+    if (path / "metadata" / "local.meta").exists():
+        meta_success, message = manager.merge_meta()
+        print(message)
+        if not meta_success:
+            success = False
+    else:
+        print("No local.meta file found, skipping metadata merge")
 
     return 0 if success else 1
 
