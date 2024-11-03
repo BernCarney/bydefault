@@ -37,6 +37,7 @@ ENV/
 htmlcov/
 .pytest_cache/
 .tox/
+coverage.xml
 
 # Misc
 .DS_Store

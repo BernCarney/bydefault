@@ -4,8 +4,8 @@ import sys
 from pathlib import Path
 from typing import List, Optional
 
-from bydefault.core.splunk_ops import SplunkConfManager
 from bydefault.core import version_manager
+from bydefault.core.splunk_ops import SplunkConfManager
 
 
 def merge_command(path: Path) -> int:
@@ -22,13 +22,18 @@ def merge_command(path: Path) -> int:
         print(f"Error: {path} is not a directory")
         return 1
 
+    # Check if this is a TA directory (has default/app.conf)
+    if not (path / "default" / "app.conf").exists():
+        print("Error: Not a valid TA directory (missing default/app.conf)")
+        return 1
+
     manager = SplunkConfManager(path)
 
     # Merge configuration files
     local_configs = manager.get_local_configs()
     if not local_configs:
         print("No local configuration files found")
-        return 0
+        return 1
 
     success = True
     for conf_file in local_configs:
