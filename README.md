@@ -2,8 +2,17 @@
 
 CLI tools for Splunk 9.2.2 TA development and maintenance.
 
-[![CI](https://github.com/your-org/bydefault/actions/workflows/ci.yml/badge.svg)](https://github.com/your-org/bydefault/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/your-org/bydefault/branch/main/graph/badge.svg)](https://codecov.io/gh/your-org/bydefault)
+## References
+
+- **Project Links**
+  - [byDefault Repository](https://github.com/your-org/bydefault)
+  - [CI Status](https://github.com/your-org/bydefault/actions/workflows/ci.yml)
+  - [Code Coverage](https://codecov.io/gh/your-org/bydefault)
+
+- **Documentation**
+  - [UV Package Manager](https://docs.astral.sh/uv/)
+  - [Ruff Linter & Formatter](https://docs.astral.sh/ruff/)
+  - [Splunk 9.2.2 Documentation](https://docs.splunk.com/Documentation/Splunk/9.2.2)
 
 ## Overview
 
@@ -24,58 +33,77 @@ byDefault provides a suite of command-line tools to assist Splunk developers in 
 
 - Python 3.8 or higher
 - UV package manager
+- ~/.local/bin in PATH (or appropriate UV tools directory)
 
 ## Installation
 
-1. Clone the repository:
+### Installing UV
+
+UV is a fast, reliable, and feature-rich Python package installer and resolver. It serves as a drop-in replacement for pip/pip-tools with significant performance improvements.
+
+Choose one of the following installation methods:
+
+1. Install UV:
+
+    **macOS (Recommended)**
 
     ```bash
-    git clone <repository-url>
-    cd bydefault
+    brew install uv
     ```
 
-2. Create and activate a virtual environment using UV:
+    **Linux/macOS (Alternative)**
 
     ```bash
-    uv venv
-    source .venv/bin/activate  # On Unix/macOS
-    # or
-    .venv\Scripts\activate  # On Windows
+    curl -LsSf https://astral.sh/uv/install.sh | sh
     ```
 
-3. Install dependencies:
+    **Windows**
 
-    ```bash
-    uv pip install -r requirements.txt
+    ```powershell
+    powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
     ```
+
+2. The installation scripts automatically add UV to your PATH. Verify the installation:
+
+```bash
+uv --version
+```
+
+For additional setup options, including shell completion for `uv` and `uvx` commands and uninstallation instructions, please refer to the [UV Installation Guide](https://docs.astral.sh/uv/getting-started/installation/).
+
+### Installing byDefault
+
+Install byDefault as a system tool:
+
+```bash
+uv tool install "git+https://github.com/your-org/bydefault.git"
+```
+
+This makes the `bydefault` command available directly in your PATH.
+
+### Upgrading
+
+#### Upgrading UV
+
+```bash
+uv self update
+```
+
+#### Upgrading byDefault
+
+```bash
+uv tool upgrade bydefault
+```
+
+UV remembers the installation source, so you don't need to specify the repository URL again when upgrading.
 
 ## Usage
 
-### Merging Local Configurations
-
-To merge local configurations into default:
-
 ```bash
+# Merge configurations
 bydefault merge
-```
 
-This will:
-
-- Merge all supported configuration files from `local/` into `default/`
-- Merge `metadata/local.meta` into `metadata/default.meta`
-- Preserve existing default configurations while updating with local changes
-
-### Managing Versions
-
-To update the version across all TAs in the current directory:
-
-```bash
-bydefault version <new_version>
-```
-
-Example:
-
-```bash
+# Update versions
 bydefault version 2.0.0
 ```
 
@@ -89,28 +117,45 @@ bydefault version 2.0.0
 - tags.conf
 - fields.conf
 - macros.conf
+- web.conf
 
 ## Development
 
-1. Install development dependencies:
+1. Clone the repository:
+
+    ```bash
+    git clone <repository-url>
+    cd bydefault
+    ```
+
+2. Create and activate a virtual environment:
+
+    ```bash
+    uv venv
+    source .venv/bin/activate  # On Unix/macOS
+    # or
+    .venv\Scripts\activate  # On Windows
+    ```
+
+3. Install development dependencies:
 
     ```bash
     uv pip install -e ".[dev]"
     ```
 
-2. Run tests:
+4. Run tests:
 
     ```bash
     pytest
     ```
 
-3. Run linting:
+5. Run linting:
 
     ```bash
     ruff check .
     ```
 
-4. Run formatting:
+6. Run formatting:
 
     ```bash
     ruff format .
