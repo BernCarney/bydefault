@@ -72,6 +72,37 @@ conf_file.add_setting_to_stanza("[apache_access]", "TIME_PREFIX", "\\[")
 conf_file.add_setting_to_stanza("[apache_access]", "TIME_FORMAT", "%d/%b/%Y:%H:%M:%S %z")
 ```
 
+### Continuation Lines
+
+```python
+# Input file:
+#   [apache_access]
+#   EXTRACT = \
+#       user=(?P<user>[^\s]+)\s+ \
+#       ip=(?P<ip>\d+\.\d+\.\d+\.\d+)\s+ \
+#       status=(?P<status>\d+)
+
+conf_file = ConfFile(Path("transforms.conf"))
+conf_file.add_line(1, content=ConfStanza("[apache_access]"))
+
+# Add multi-line value with continuations
+result = ConfValueParser.parse(
+    "EXTRACT = user=(?P<user>[^\s]+)\\",
+    [
+        "    ip=(?P<ip>\\d+\\.\\d+\\.\\d+\\.\\d+)\\",
+        "    status=(?P<status>\\d+)",
+    ]
+)
+conf_file.add_line(2, content=ConfValue.from_parsed_value(result))
+```
+
+Key features of continuation handling:
+
+- Preserves indentation and formatting
+- Handles escaped backslashes correctly
+- Maintains inline comments
+- Supports multiple continuation lines
+
 ## Key Features
 
 1. **Line Number Management**

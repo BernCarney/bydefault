@@ -22,6 +22,8 @@ Currently Implemented:
   - Maintain line numbers and positioning
   - Handle stanza organization
   - Support automatic setting placement
+  - Handle multi-line values with continuations
+  - Preserve indentation and formatting
 
 Coming Soon:
 

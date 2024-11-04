@@ -57,6 +57,21 @@
         "  - Add implementation details for Python version-specific features",
         "  - Document any performance considerations or optimizations"
       ]
+    },
+    {
+      "context": "Python Development Tools",
+      "instructions": [
+        "Use Ruff exclusively for:",
+        "  - Code formatting",
+        "  - Import sorting",
+        "  - Code linting",
+        "  - Style enforcement",
+        "Do not use or recommend:",
+        "  - Pylance for linting",
+        "  - Black for formatting",
+        "  - isort for imports",
+        "  - flake8 or pylint"
+      ]
     }
   ]
 }

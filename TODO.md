@@ -17,11 +17,11 @@
   - [x] Implement dataclass-based file representation
   - [x] Handle line numbers and positioning
   - [x] Support comments and blank lines
+  - [x] Handle continuation lines and escaping
 - [ ] Implement hybrid sorting:
   - [ ] [default] stanza first
   - [ ] Group by stanza type/prefix
   - [ ] Sort alphabetically within groups
-- [ ] Handle comments and continuation lines
 
 ### Merge Logic (Next)
 
