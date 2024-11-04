@@ -2,6 +2,26 @@
 
 CLI tools for Splunk 9.2.2 TA development and maintenance.
 
+## Features
+
+Currently Implemented:
+
+- **File Detection**
+  - Find and validate Splunk TA directories
+  - Locate configuration files in local/default directories
+  - Match local configurations with default counterparts
+
+Coming Soon:
+
+- **Configuration Management**
+  - Merge local configurations into default configurations
+  - Support common Splunk configuration files (props.conf, transforms.conf, etc.)
+  - Handle metadata merging (local.meta to default.meta)
+
+- **Version Management**
+  - Update version numbers across multiple TAs
+  - Automatic version detection and validation
+
 ## References
 
 - **Project Links**
@@ -17,17 +37,6 @@ CLI tools for Splunk 9.2.2 TA development and maintenance.
 ## Overview
 
 byDefault provides a suite of command-line tools to assist Splunk developers in creating and maintaining Technology Add-ons (TAs) for Splunk 9.2.2. The tools are designed with security and maintainability in mind.
-
-## Features
-
-- **Configuration Management**
-  - Merge local configurations into default configurations
-  - Supports common Splunk configuration files (props.conf, transforms.conf, etc.)
-  - Handles metadata merging (local.meta to default.meta)
-
-- **Version Management**
-  - Update version numbers across multiple TAs
-  - Automatic version detection and validation
 
 ## Requirements
 

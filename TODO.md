@@ -1,51 +1,39 @@
 # byDefault Development TODO
 
-## Current Focus: Project Restructuring
+## Current Focus: Phase 1 - Generic .conf File Handling
 
-### Restructuring Tasks
+### File Detection (In Progress)
 
-- [x] Create new directory structure
-  - [x] cli/ directory for command implementations
-  - [x] core/ directory for business logic
-  - [x] utils/ directory for shared utilities
-- [x] Move existing code to new structure
-  - [x] Refactor CLI commands into cli/
-  - [x] Move core logic into core/
-  - [x] Extract utilities into utils/
-- [x] Update imports and references
-- [x] Ensure tests follow new structure
+- [x] Scan for .conf files in local/
+- [x] Match with default/ files
+- [x] Create basic file detection utilities
+- [x] Add TA directory validation
+- [ ] Handle root-level and single TA scenarios
+- [ ] Handle metadata files (local.meta → default.meta)
 
-## Phase 1 - Generic .conf File Handling
+### File Processing (Next)
 
-### Phase 1 Tasks
+- [ ] Parse .conf files into common structure
+- [ ] Implement hybrid sorting:
+  - [ ] [default] stanza first
+  - [ ] Group by stanza type/prefix
+  - [ ] Sort alphabetically within groups
+- [ ] Validate .conf structure
+- [ ] Handle comments and continuation lines
 
-- [ ] File Detection
-  - [ ] Scan for .conf files in local/
-  - [ ] Match with default/ files
-  - [ ] Create new default files if needed
-  - [ ] Handle root-level and single TA scenarios
-  - [ ] Handle metadata files (local.meta → default.meta)
+### Merge Logic
 
-- [ ] File Processing
-  - [ ] Parse .conf files into common structure
-  - [ ] Implement hybrid sorting:
-    - [ ] [default] stanza first
-    - [ ] Group by stanza type/prefix
-    - [ ] Sort alphabetically within groups
-  - [ ] Validate .conf structure
-  - [ ] Handle comments and continuation lines
+- [ ] Merge local stanzas into default
+- [ ] Preserve existing default values
+- [ ] Handle new/modified stanzas
+- [ ] Handle deleted keys
 
-- [ ] Merge Logic
-  - [ ] Merge local stanzas into default
-  - [ ] Preserve existing default values
-  - [ ] Handle new/modified stanzas
-  - [ ] Handle deleted keys
+### Validation & Safety
 
-- [ ] Validation & Safety
-  - [ ] Validate merged content
-  - [ ] Create backups
-  - [ ] Implement logging
-  - [ ] Report issues/conflicts
+- [ ] Validate merged content
+- [ ] Create backups
+- [x] Implement logging
+- [ ] Report issues/conflicts
 
 ## Future Phases
 
@@ -63,10 +51,19 @@
 
 ## Completed Items
 
-- None yet
+- [x] Project Restructuring
+  - [x] Create modular directory structure (cli/, core/, utils/)
+  - [x] Move CLI entry point to cli/__init__.py
+  - [x] Separate core logic into merge and version modules
+  - [x] Add utility modules for shared functionality
+  - [x] Remove old file structure
+  - [x] Update imports and references
+  - [x] Add Click as CLI framework
+  - [x] Set up basic logging
 
 ## Notes
 
-- Current approach: Generic .conf file handling first
-- Hybrid sorting strategy chosen for stanza organization
-- Focus on completing each phase fully before moving to next
+- Current focus: File detection and processing
+- Using pathlib for file operations
+- Implementing validation before processing
+- Testing each component in isolation
