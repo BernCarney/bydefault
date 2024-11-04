@@ -13,7 +13,7 @@
   - [x] Move core logic into core/
   - [x] Extract utilities into utils/
 - [x] Update imports and references
-- [ ] Ensure tests follow new structure
+- [x] Ensure tests follow new structure
 
 ## Phase 1 - Generic .conf File Handling
 

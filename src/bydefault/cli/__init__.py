@@ -4,12 +4,15 @@ import click
 
 from bydefault.cli.merge import merge
 from bydefault.cli.version import version
+from bydefault.utils.logger import setup_logger
+
+logger = setup_logger()
 
 
 @click.group()
 def main() -> None:
-    """byDefault CLI tool for Splunk TA development."""
-    pass
+    """byDefault CLI tool for Splunk TA development and maintenance."""
+    logger.debug("Starting byDefault CLI")
 
 
 main.add_command(merge)

@@ -14,5 +14,10 @@ def find_conf_files(path: Path, pattern: str = "*.conf") -> Iterator[Path]:
 
     Returns:
         Iterator of Path objects for matching files
+
+    Raises:
+        FileNotFoundError: If path doesn't exist
     """
+    if not path.exists():
+        raise FileNotFoundError(f"Directory not found: {path}")
     return path.rglob(pattern)

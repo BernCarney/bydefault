@@ -17,4 +17,5 @@ def version(version: str) -> None:
         logger.info(f"Updated version to {version}")
     except Exception as e:
         logger.error(f"Version update failed: {e}")
+        # Exit with error code 1 to indicate failure
         raise click.ClickException(str(e))
