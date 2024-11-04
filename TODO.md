@@ -2,7 +2,7 @@
 
 ## Current Focus: Phase 1 - Generic .conf File Handling
 
-### File Detection (In Progress)
+### File Detection (Completed)
 
 - [x] Scan for .conf files in local/
 - [x] Match with default/ files
@@ -11,17 +11,19 @@
 - [x] Handle root-level and single TA scenarios
 - [x] Handle metadata files (local.meta → default.meta)
 
-### File Processing (Next)
+### File Processing (In Progress)
 
-- [ ] Parse .conf files into common structure
+- [x] Parse .conf files into common structure
+  - [x] Implement dataclass-based file representation
+  - [x] Handle line numbers and positioning
+  - [x] Support comments and blank lines
 - [ ] Implement hybrid sorting:
   - [ ] [default] stanza first
   - [ ] Group by stanza type/prefix
   - [ ] Sort alphabetically within groups
-- [ ] Validate .conf structure
 - [ ] Handle comments and continuation lines
 
-### Merge Logic
+### Merge Logic (Next)
 
 - [ ] Merge local stanzas into default
 - [ ] Preserve existing default values
@@ -48,6 +50,18 @@
 - [ ] Special case handlers for specific .conf files
 - [ ] Complex merge scenarios
 - [ ] Conflict resolution
+
+### Phase 4 - Documentation Migration
+
+- [ ] Evaluate documentation hosting options
+  - [ ] Research enterprise GitHub Pages availability
+  - [ ] Consider MkDocs vs Sphinx tradeoffs
+  - [ ] Plan migration of existing documentation
+- [ ] Documentation Infrastructure
+  - [ ] Set up automated doc builds
+  - [ ] Migrate inline documentation
+  - [ ] Add CLI command reference
+  - [ ] Create troubleshooting guide
 
 ## Completed Items
 

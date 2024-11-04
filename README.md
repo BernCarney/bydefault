@@ -16,12 +16,20 @@ Currently Implemented:
     - Inside a git repository with TAs
   - Metadata file handling (local.meta, default.meta)
 
+- **Configuration Processing**
+  - Parse .conf files into structured format
+  - Preserve file structure and comments
+  - Maintain line numbers and positioning
+  - Handle stanza organization
+  - Support automatic setting placement
+
 Coming Soon:
 
 - **Configuration Management**
   - Merge local configurations into default configurations
   - Support common Splunk configuration files (props.conf, transforms.conf, etc.)
   - Handle metadata merging (local.meta to default.meta)
+  - Implement hybrid sorting and organization
 
 - **Version Management**
   - Update version numbers across multiple TAs
@@ -45,15 +53,16 @@ byDefault provides a suite of command-line tools to assist Splunk developers in 
 
 ## Requirements
 
-- Python 3.8 or higher
 - UV package manager
 - ~/.local/bin in PATH (or appropriate UV tools directory)
+
+Note: Python is not required to be pre-installed. UV will automatically manage Python versions as needed.
 
 ## Installation
 
 ### Installing UV
 
-UV is a fast, reliable, and feature-rich Python package installer and resolver. It serves as a drop-in replacement for pip/pip-tools with significant performance improvements.
+UV is a fast, reliable, and feature-rich Python package installer and resolver.
 
 Choose one of the following installation methods:
 
@@ -115,10 +124,10 @@ UV remembers the installation source, so you don't need to specify the repositor
 
 ```bash
 # Merge configurations
-bydefault merge
+bydefault merge [TA_NAME]
 
 # Update versions
-bydefault version 2.0.0
+bydefault version <VERSION>
 ```
 
 ## Supported Configuration Files
@@ -154,7 +163,7 @@ bydefault version 2.0.0
 3. Install development dependencies:
 
     ```bash
-    uv pip install -e ".[dev]"
+    uv sync --all-extras
     ```
 
 4. Run tests:
