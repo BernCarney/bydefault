@@ -1,6 +1,21 @@
 # byDefault Development TODO
 
-## Current Focus: Phase 1 - Generic .conf File Handling
+## Current Focus: Project Restructuring
+
+### Restructuring Tasks
+
+- [x] Create new directory structure
+  - [x] cli/ directory for command implementations
+  - [x] core/ directory for business logic
+  - [x] utils/ directory for shared utilities
+- [x] Move existing code to new structure
+  - [x] Refactor CLI commands into cli/
+  - [x] Move core logic into core/
+  - [x] Extract utilities into utils/
+- [x] Update imports and references
+- [ ] Ensure tests follow new structure
+
+## Phase 1 - Generic .conf File Handling
 
 ### Phase 1 Tasks
 
@@ -9,6 +24,7 @@
   - [ ] Match with default/ files
   - [ ] Create new default files if needed
   - [ ] Handle root-level and single TA scenarios
+  - [ ] Handle metadata files (local.meta → default.meta)
 
 - [ ] File Processing
   - [ ] Parse .conf files into common structure

@@ -12,11 +12,14 @@ license = { text = "Proprietary" }
 authors = [
     { name = "Your Organization" }
 ]
+dependencies = [
+    "click>=8.1.0",  # CLI framework
+]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=7.0.0",
-    "ruff>=0.1.0",
+    "ruff>=0.2.0",
     "pytest-cov>=4.1.0",
 ]
 
@@ -46,3 +49,12 @@ fail_under = 80
 [tool.ruff]
 target-version = "py38"
 line-length = 88
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes
+    "I",   # isort
+    "N",   # pep8-naming
+    "UP",  # pyupgrade
+]
