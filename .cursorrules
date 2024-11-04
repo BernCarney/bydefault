@@ -41,6 +41,22 @@
         "Ensure the project is set up for packaging and distribution as a UV tool.",
         "Deploy the package in a private enterprise GitHub repository."
       ]
+    },
+    {
+      "context": "Python Documentation",
+      "instructions": [
+        "All functions and classes must have comprehensive docstrings that:",
+        "  - Describe the purpose and behavior",
+        "  - Document all parameters using Args section",
+        "  - Document return values using Returns section",
+        "  - List all raised exceptions using Raises section",
+        "  - Include usage examples for complex functionality",
+        "When updating code:",
+        "  - Never remove existing docstrings",
+        "  - Update docstrings to reflect any changes in functionality",
+        "  - Add implementation details for Python version-specific features",
+        "  - Document any performance considerations or optimizations"
+      ]
     }
   ]
 }

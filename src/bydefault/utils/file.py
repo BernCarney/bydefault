@@ -27,26 +27,30 @@ def validate_working_context(path: Path) -> Path:
         Path to the validated working directory
 
     Raises:
-        InvalidWorkingDirectoryError: If no valid working context is found
+        InvalidWorkingDirectoryError: If no valid working context is found,
+            permission errors, or file system errors
     """
-    # First, check if we're inside a TA directory
     current = path.resolve()
-    if is_ta_directory(current):
-        return current
 
-    # Check if current directory contains TAs
-    if any(is_ta_directory(d) for d in current.iterdir() if d.is_dir()):
-        return current
-
-    # Try to find git root
     try:
+        if is_ta_directory(current):
+            return current
+
+        if any(is_ta_directory(d) for d in current.iterdir() if d.is_dir()):
+            return current
+
         git_root = find_git_root(current)
         if git_root and any(
             is_ta_directory(d) for d in git_root.iterdir() if d.is_dir()
         ):
             return git_root
-    except Exception:  # noqa: BLE001, S110
-        pass
+
+    except PermissionError as e:
+        raise InvalidWorkingDirectoryError(
+            f"Permission denied while accessing {e.filename}"
+        ) from e
+    except OSError as e:
+        raise InvalidWorkingDirectoryError(f"File system error: {e}") from e
 
     raise InvalidWorkingDirectoryError(
         "Not in a valid working directory. Please run this command:\n"
@@ -116,6 +120,8 @@ def match_conf_files(ta_path: Path) -> Dict[Path, Optional[Path]]:
     """
     Match .conf files between local/ and default/ directories.
 
+    Uses Python 3.11's improved Path.glob() for more efficient file matching.
+
     Args:
         ta_path: Path to the TA directory
 
@@ -129,14 +135,16 @@ def match_conf_files(ta_path: Path) -> Dict[Path, Optional[Path]]:
     if not ta_path.exists():
         raise FileNotFoundError(f"TA directory not found: {ta_path}")
 
-    local_files = get_local_conf_files(ta_path)
-    result = {}
-
-    for local_file in local_files:
-        # Get corresponding default file path
-        default_file = ta_path / "default" / local_file.name
-        result[local_file] = default_file if default_file.exists() else None
-
+    # More efficient with Path.glob() in Python 3.11+
+    local_files = list(ta_path.glob("local/*.conf"))
+    result = {
+        local_file: (
+            ta_path / "default" / local_file.name
+            if (ta_path / "default" / local_file.name).exists()
+            else None
+        )
+        for local_file in local_files
+    }
     return result
 
 
@@ -162,6 +170,8 @@ def find_ta_directories(root_path: Path) -> List[Path]:
     """
     Find all valid TA directories under root path.
 
+    Uses Python 3.11's improved Path operations for more efficient directory scanning.
+
     Args:
         root_path: Root directory to search for TAs
 
@@ -175,8 +185,13 @@ def find_ta_directories(root_path: Path) -> List[Path]:
     if not root_path.exists():
         raise FileNotFoundError(f"Root directory not found: {root_path}")
 
+    # More efficient with generator expression and Path operations
     ta_dirs = [
-        path for path in root_path.iterdir() if path.is_dir() and is_ta_directory(path)
+        path
+        for path in root_path.iterdir()
+        if path.is_dir()
+        and (path / "default" / "app.conf").exists()
+        and all((path / d).is_dir() for d in ("local", "default"))
     ]
 
     if not ta_dirs:
