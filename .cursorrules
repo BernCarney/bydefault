@@ -89,6 +89,32 @@
         "",
         "  Context here\""
       ]
+    },
+    {
+      "context": "Development Notes",
+      "instructions": [
+        "DEVNOTES.md should include:",
+        "  - Current state and recently completed work",
+        "  - Next steps with implementation details",
+        "  - Context for next development session",
+        "  - Files of interest with brief descriptions",
+        "  - Recent commits in chronological order",
+        "  - Technical notes and considerations",
+        "Format sections as:",
+        "  ## Current State",
+        "    ### Recently Completed",
+        "    - List with details",
+        "  ## Next Steps",
+        "    - Prioritized tasks with considerations",
+        "  ## Context for Next Session",
+        "    - Key points for resuming work",
+        "  ## Files of Interest",
+        "    - Relevant files with descriptions",
+        "  ## Recent Commits",
+        "    - Last few commits in order",
+        "  ## Notes",
+        "    - Technical considerations"
+      ]
     }
   ]
 }
