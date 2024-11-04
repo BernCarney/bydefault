@@ -13,6 +13,20 @@
       ]
     },
     {
+      "context": "Terminal Commands",
+      "instructions": [
+        "Always provide terminal commands in a copy-pasteable format using && for command chaining",
+        "Git commands should be provided as a single line that can be directly copied to terminal",
+        "Git commit messages should follow the format:",
+        "  - First line: type: brief description",
+        "  - Blank line",
+        "  - Bullet points starting with - for detailed changes",
+        "  - Optional context or rationale after bullet points",
+        "Include comments above complex commands explaining their purpose",
+        "For destructive operations, include a warning comment above the command"
+      ]
+    },
+    {
       "context": "Markdown and Documentation",
       "instructions": [
         "Ensure README.md is in GitHub flavored markdown and is structured to avoid breaking Cursor's functionality, especially with codeblocks.",
