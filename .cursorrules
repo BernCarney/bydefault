@@ -72,6 +72,23 @@
         "  - isort for imports",
         "  - flake8 or pylint"
       ]
+    },
+    {
+      "context": "Git Operations",
+      "instructions": [
+        "When amending commits:",
+        "  - Use git add for specific files",
+        "  - Use --amend to modify the last commit",
+        "  - Keep the original commit message format",
+        "  - Include warning about amending pushed commits",
+        "Example:",
+        "  git add specific/files && git commit --amend -m \"type: description",
+        "",
+        "  - Bullet points",
+        "  - More points",
+        "",
+        "  Context here\""
+      ]
     }
   ]
 }
