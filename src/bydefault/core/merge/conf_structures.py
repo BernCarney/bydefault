@@ -4,13 +4,30 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional, Union
 
+from .parser import ParsedValue
+
 
 @dataclass(frozen=True)
 class ConfValue:
     """Single configuration value with its metadata."""
 
     value: str
-    is_continued: bool = False
+    continuation_lines: List[str] = field(default_factory=list)
+    inline_comment: Optional[str] = None
+    is_continued: bool = field(init=False)
+
+    def __post_init__(self) -> None:
+        """Calculate is_continued based on continuation_lines."""
+        object.__setattr__(self, "is_continued", bool(self.continuation_lines))
+
+    @classmethod
+    def from_parsed_value(cls, parsed: ParsedValue) -> "ConfValue":
+        """Create ConfValue from ParsedValue."""
+        return cls(
+            value=parsed.value,
+            continuation_lines=parsed.continuation_lines,
+            inline_comment=parsed.inline_comment,
+        )
 
 
 @dataclass

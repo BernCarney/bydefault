@@ -4,12 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from bydefault.core.merge.conf_structures import (
-    ConfFile,
-    ConfLine,
-    ConfStanza,
-    ConfValue,
-)
+from bydefault.core import ConfFile, ConfLine, ConfStanza, ConfValue
 
 
 @pytest.fixture

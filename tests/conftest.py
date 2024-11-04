@@ -1,10 +1,18 @@
-"""Shared test fixtures for byDefault."""
+"""Shared test fixtures and configuration."""
 
 from pathlib import Path
 from typing import Generator
 
 import pytest
 from click.testing import CliRunner
+
+
+def pytest_configure(config):
+    """Configure pytest for our project."""
+    config.addinivalue_line(
+        "markers",
+        "integration: mark test as integration test",
+    )
 
 
 @pytest.fixture

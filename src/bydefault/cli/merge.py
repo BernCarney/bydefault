@@ -5,13 +5,15 @@ from typing import Optional, TypeAlias
 
 import click
 
-from bydefault.core.merge.conf import process_merge
-from bydefault.utils.file import InvalidWorkingDirectoryError, validate_working_context
-from bydefault.utils.logger import setup_logger
+from bydefault.utils import (
+    InvalidWorkingDirectoryError,
+    setup_logger,
+    validate_working_context,
+)
 
 logger = setup_logger()
 
-TAPath: TypeAlias = Optional[Path]  # New in Python 3.10+
+TAPath: TypeAlias = Optional[Path]
 
 
 @click.command()
@@ -36,8 +38,10 @@ def merge(ta_name: Optional[str] = None) -> None:
     try:
         working_dir = validate_working_context(Path.cwd())
         ta_path: TAPath = Path(working_dir / ta_name) if ta_name else None
-        process_merge(ta_path)
-        logger.info(f"Merged {'all TAs' if ta_name is None else ta_name}")
+
+        # TODO: Implement merge functionality
+        logger.info("Merge functionality not yet implemented")
+        logger.debug(f"Would merge: {'all TAs' if ta_name is None else ta_name}")
 
     except InvalidWorkingDirectoryError as e:
         logger.error(str(e))
