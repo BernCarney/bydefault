@@ -7,7 +7,7 @@ name = "bydefault"
 version = "0.1.0"
 description = "CLI tools for Splunk 9.2.2 TA development and maintenance"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.11"
 license = { text = "Proprietary" }
 authors = [
     { name = "Your Organization" }
