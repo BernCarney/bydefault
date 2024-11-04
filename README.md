@@ -10,6 +10,11 @@ Currently Implemented:
   - Find and validate Splunk TA directories
   - Locate configuration files in local/default directories
   - Match local configurations with default counterparts
+  - Support for multiple working contexts:
+    - Inside a TA directory
+    - Inside a directory containing multiple TAs
+    - Inside a git repository with TAs
+  - Metadata file handling (local.meta, default.meta)
 
 Coming Soon:
 
