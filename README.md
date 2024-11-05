@@ -37,6 +37,18 @@ Coming Soon:
   - Update version numbers across multiple TAs
   - Automatic version detection and validation
 
+- **Configuration File Management**
+  - Parse and validate Splunk .conf files
+  - Handle continuation lines and comments
+  - Maintain file structure integrity
+  - **Coming Soon**: Intelligent stanza sorting
+
+- **File Operations**
+  - Merge local configurations into default
+  - Preserve comments and formatting
+  - Support multiple TA directories
+  - Validate file structure
+
 ## References
 
 - **Project Links**
@@ -199,3 +211,13 @@ This tool is designed to work in environments containing sensitive information. 
 ## License
 
 Proprietary - All rights reserved
+
+## Development Status
+
+Currently implementing:
+
+- Stanza sorting functionality
+- Enhanced configuration file handling
+- Improved test coverage
+
+See [TODO.md](TODO.md) for detailed task tracking.

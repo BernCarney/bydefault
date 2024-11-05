@@ -115,6 +115,34 @@
         "  ## Notes",
         "    - Technical considerations"
       ]
+    },
+    {
+      "context": "TODO Management",
+      "instructions": [
+        "Never delete tasks from TODO.md",
+        "Tasks and sections should follow these rules:",
+        "  - Tasks remain in their original phase and section",
+        "  - Tasks can be marked complete [x] with date (YYYY-MM-DD)",
+        "  - Sections can be marked as:",
+        "    - (Complete) when all tasks are done",
+        "    - (In Progress) when work has started",
+        "    - (Next) when planned for immediate future",
+        "  - New tasks can be added to any section",
+        "  - Tasks can be reorganized within their section",
+        "Format sections as:",
+        "  ### Section Name (Complete)",
+        "  - [x] Task 1 (2024-03-20)",
+        "  - [x] Task 2 (2024-03-21)",
+        "",
+        "  ### Section Name (In Progress)",
+        "  - [x] Completed task (2024-03-22)",
+        "  - [ ] Current task",
+        "  - [ ] Upcoming task",
+        "",
+        "  ### Section Name (Next)",
+        "  - [ ] Planned task 1",
+        "  - [ ] Planned task 2"
+      ]
     }
   ]
 }

@@ -2,26 +2,53 @@
 
 ## Current Focus: Phase 1 - Generic .conf File Handling
 
-### File Detection (Completed)
+### File Detection (Complete)
 
-- [x] Scan for .conf files in local/
-- [x] Match with default/ files
-- [x] Create basic file detection utilities
-- [x] Add TA directory validation
-- [x] Handle root-level and single TA scenarios
-- [x] Handle metadata files (local.meta → default.meta)
+- [x] Scan for .conf files in local/ (2024-11-04)
+- [x] Match with default/ files (2024-11-04)
+- [x] Create basic file detection utilities (2024-11-04)
+- [x] Add TA directory validation (2024-11-04)
+- [x] Handle root-level and single TA scenarios (2024-11-04)
+- [x] Handle metadata files (local.meta → default.meta) (2024-11-04)
+- [x] Working directory validation (2024-11-04)
+- [x] Git repository detection (2024-11-04)
+- [x] Multiple TA discovery (2024-11-04)
+- [x] Metadata file handling (2024-11-04)
 
 ### File Processing (In Progress)
 
-- [x] Parse .conf files into common structure
-  - [x] Implement dataclass-based file representation
-  - [x] Handle line numbers and positioning
-  - [x] Support comments and blank lines
-  - [x] Handle continuation lines and escaping
+- [x] Parse .conf files into common structure (2024-11-04)
+  - [x] Implement dataclass-based file representation (2024-11-04)
+  - [x] Handle line numbers and positioning (2024-11-04)
+  - [x] Support comments and blank lines (2024-11-04)
+  - [x] Handle continuation lines and escaping (2024-11-04)
 - [ ] Implement hybrid sorting:
-  - [ ] [default] stanza first
-  - [ ] Group by stanza type/prefix
-  - [ ] Sort alphabetically within groups
+  - [ ] Create core/sort module structure
+  - [ ] Implement stanza classification system
+    - [ ] Global settings detection
+    - [ ] Default stanza handling
+    - [ ] Wildcard pattern matching
+    - [ ] Type-based grouping
+  - [ ] Develop sorting logic
+    - [ ] Primary ordering implementation
+    - [ ] Secondary ordering within types
+    - [ ] Comment and whitespace preservation
+  - [ ] Add error handling
+    - [ ] Input validation
+    - [ ] Recovery mechanisms
+    - [ ] Logging integration
+  - [ ] Performance optimization
+    - [ ] Memory usage management
+    - [ ] Processing efficiency
+    - [ ] Resource constraints
+  - [ ] Testing implementation
+    - [ ] Unit test suite
+    - [ ] Integration tests
+    - [ ] Performance tests
+  - [ ] Documentation
+    - [ ] API documentation
+    - [ ] Usage examples
+    - [ ] Implementation notes
 
 ### Merge Logic (Next)
 
@@ -30,16 +57,27 @@
 - [ ] Handle new/modified stanzas
 - [ ] Handle deleted keys
 
-### Validation & Safety
+### Validation & Safety (In Progress)
 
 - [ ] Validate merged content
 - [ ] Create backups
-- [x] Implement logging
+- [x] Implement logging (2024-11-04)
 - [ ] Report issues/conflicts
+
+### Project Structure (Complete)
+
+- [x] Create modular directory structure (cli/, core/, utils/) (2024-11-04)
+- [x] Move CLI entry point to cli/__init__.py (2024-11-04)
+- [x] Separate core logic into merge and version modules (2024-11-04)
+- [x] Add utility modules for shared functionality (2024-11-04)
+- [x] Remove old file structure (2024-11-04)
+- [x] Update imports and references (2024-11-04)
+- [x] Add Click as CLI framework (2024-11-04)
+- [x] Set up basic logging (2024-11-04)
 
 ## Future Phases
 
-### Phase 2 - Dashboard and Navigation
+### Phase 2 - Dashboard and Navigation (Next)
 
 - [ ] XML file handling in views/
 - [ ] XML-specific merge strategies
@@ -62,23 +100,6 @@
   - [ ] Migrate inline documentation
   - [ ] Add CLI command reference
   - [ ] Create troubleshooting guide
-
-## Completed Items
-
-- [x] Project Restructuring
-  - [x] Create modular directory structure (cli/, core/, utils/)
-  - [x] Move CLI entry point to cli/__init__.py
-  - [x] Separate core logic into merge and version modules
-  - [x] Add utility modules for shared functionality
-  - [x] Remove old file structure
-  - [x] Update imports and references
-  - [x] Add Click as CLI framework
-  - [x] Set up basic logging
-- [x] File Detection Implementation
-  - [x] Working directory validation
-  - [x] Git repository detection
-  - [x] Multiple TA discovery
-  - [x] Metadata file handling
 
 ## Notes
 
