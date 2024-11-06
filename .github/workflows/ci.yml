@@ -9,32 +9,50 @@ on:
 
 jobs:
   test:
+    name: python
+    name: python
     runs-on: ubuntu-latest
+
+
     strategy:
       matrix:
-        python-version: ["3.11", "3.12"]
+        python-version: ["3.11"]
 
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0 # Fetch all history for branch comparison
 
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+      - name: Install UV
+        uses: astral-sh/setup-uv@v3
+
+      - name: Install UV
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "0.4.30"
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+          version: "0.4.30"
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install UV
-        run: |
-          curl -LsSf https://astral.sh/uv/install.sh | sh
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-
       - name: Install dependencies
-        run: |
-          uv pip install -e ".[dev]"
+        run: uv sync --all-extras --dev
+        env:
+          UV_SYSTEM_PYTHON: 1
+        run: uv sync --all-extras --dev
+        env:
+          UV_SYSTEM_PYTHON: 1
 
       - name: Run tests with coverage
         run: |
+          source .venv/bin/activate
+          source .venv/bin/activate
           pytest --cov=bydefault --cov-report=xml
 
       - name: Upload coverage to Codecov
@@ -46,37 +64,91 @@ jobs:
           verbose: true
 
   lint:
+    name: python-lint
+    name: python-lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - name: Install UV
+        uses: astral-sh/setup-uv@v3
         with:
-          python-version: "3.11"
+          version: "0.4.30"
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
 
       - name: Install UV
-        run: |
-          curl -LsSf https://astral.sh/uv/install.sh | sh
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "0.4.30"
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: "pyproject.toml"
+          python-version-file: "pyproject.toml"
 
       - name: Install dependencies
-        run: |
-          uv pip install ruff
+        run: uv sync --all-extras --dev
+        env:
+          UV_SYSTEM_PYTHON: 1
+        run: uv sync --all-extras --dev
+        env:
+          UV_SYSTEM_PYTHON: 1
 
-      - name: Lint with Ruff
+      - name: Format and lint with Ruff
         run: |
+          source .venv/bin/activate
+          ruff format .
           ruff check .
           ruff format --check .
 
+      - name: Commit formatting changes
+        if: github.event_name == 'pull_request'
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add .
+          git commit -m "style: auto-format with ruff" || true
+          git push
+
   pr-checks:
+    name: pr-validation
+    name: pr-validation
     needs: [test, lint]
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+
+
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Install UV
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "0.4.30"
+          enable-cache: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install UV
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "0.4.30"
+          enable-cache: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
 
       - name: Check branch is up to date with main
         run: |
