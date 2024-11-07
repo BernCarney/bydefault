@@ -149,3 +149,46 @@ def test_conf_file_stanza_property(sample_conf_file: Path):
     assert len(stanzas) == 2
     assert stanzas[0].name == "[test1]"
     assert stanzas[1].name == "[test2]"
+
+
+def test_conf_stanza_add_setting_without_conf_file():
+    """Test adding setting to stanza without parent conf file."""
+    stanza = ConfStanza("[test]")
+    stanza.add_setting("key", "value")
+    assert "key" in stanza.settings
+    assert stanza.settings["key"].value == "value"
+
+
+def test_conf_stanza_add_setting_with_conf_file(sample_conf_file):
+    """Test adding setting to stanza with parent conf file."""
+    conf_file = ConfFile(sample_conf_file)
+
+    # Add stanza
+    conf_file.add_line(1, ConfStanza("[test]"))
+    stanza = conf_file.get_stanza("[test]")
+
+    # Add setting at start
+    stanza.add_setting("key1", "value1", position="start", conf_file=conf_file)
+    assert conf_file.lines[1].content.value == "value1"
+
+    # Add setting at end
+    stanza.add_setting("key2", "value2", position="end", conf_file=conf_file)
+    assert conf_file.lines[-1].content.value == "value2"
+
+
+def test_conf_file_add_stanza(tmp_path):
+    """Test adding stanza to conf file."""
+    test_file = tmp_path / "test.conf"
+    test_file.touch()  # Create empty file
+    conf_file = ConfFile(test_file)
+    stanza = conf_file.add_stanza("[test]", 1)
+    assert isinstance(stanza, ConfStanza)
+    assert stanza.name == "[test]"
+    assert stanza.line_number == 1
+
+
+def test_conf_file_add_setting_invalid_stanza(sample_conf_file):
+    """Test adding setting to non-existent stanza."""
+    conf_file = ConfFile(sample_conf_file)
+    with pytest.raises(ValueError, match="Stanza not found"):
+        conf_file.add_setting_to_stanza("[nonexistent]", "key", "value")

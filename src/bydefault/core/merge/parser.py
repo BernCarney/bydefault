@@ -63,6 +63,8 @@ class ConfValueParser:
         for line in following_lines:
             continuation_lines.append(line)
             stripped = line.lstrip()
+            if not stripped:  # Skip empty lines
+                continue
             if match := re.match(cls.CONTINUATION_PATTERN, stripped):
                 value_parts.append(match.group(1).rstrip())
                 if comment := match.group(2):
@@ -73,6 +75,9 @@ class ConfValueParser:
             else:
                 value_parts.append(stripped.rstrip())
 
+        # Filter out empty strings before joining
+        value_parts = [part for part in value_parts if part]
+        
         return ParsedValue(
             value=" ".join(value_parts),
             continuation_lines=continuation_lines,

@@ -53,3 +53,52 @@ def test_parse_escaped_backslash():
     result = ConfValueParser.parse("value with \\\\ backslash")
     assert result.value == "value with \\ backslash"
     assert not result.continuation_lines
+
+
+def test_parser_escaped_backslash():
+    """Test parsing value with escaped backslashes."""
+    result = ConfValueParser.parse(r"path=C:\\Program Files\\Splunk")
+    assert result.value == r"path=C:\Program Files\Splunk"
+    assert not result.continuation_lines
+
+
+def test_parser_multiple_continuations_with_comments():
+    """Test parsing multiple continuation lines with comments."""
+    result = ConfValueParser.parse(
+        "first \\ # comment1", ["    second \\ # comment2", "    third # final comment"]
+    )
+    assert result.value == "first second third"
+    assert result.inline_comment == "final comment"
+    assert len(result.continuation_lines) == 2
+
+
+def test_parser_empty_continuation():
+    """Test parsing empty continuation lines."""
+    result = ConfValueParser.parse("value \\", ["    ", "    next"])
+    assert result.value == "value next"
+    assert len(result.continuation_lines) == 2
+
+
+def test_parser_only_comment():
+    """Test parsing line with only comment."""
+    result = ConfValueParser.parse("# comment")
+    assert result.value == ""
+    assert result.inline_comment == "comment"
+
+def test_parse_empty_value_with_comment():
+    """Test parsing empty value with comment."""
+    result = ConfValueParser.parse("# comment")
+    assert result.value == ""
+    assert result.inline_comment == "comment"
+
+
+def test_parse_multiple_escaped_backslashes():
+    """Test parsing value with multiple escaped backslashes."""
+    result = ConfValueParser.parse(r"value\\\\value")
+    assert result.value == r"value\\value"
+
+
+def test_parse_continuation_with_multiple_spaces():
+    """Test parsing continuation with varying whitespace."""
+    result = ConfValueParser.parse("value1    \\", ["    value2    "])
+    assert result.value == "value1 value2"

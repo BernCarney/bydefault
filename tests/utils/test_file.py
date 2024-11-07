@@ -10,6 +10,7 @@ from bydefault.utils.file import (
     find_git_root,
     find_ta_directories,
     get_local_conf_files,
+    get_meta_files,
     is_ta_directory,
     match_conf_files,
     validate_working_context,
@@ -148,3 +149,40 @@ def test_find_ta_directories_no_tas(tmp_path: Path) -> None:
     with pytest.raises(InvalidWorkingDirectoryError) as exc:
         find_ta_directories(tmp_path)
     assert "No valid TA directories found" in str(exc.value)
+
+
+def test_validate_working_context_permission_error(tmp_path):
+    """Test working context validation with permission error."""
+    ta_dir = tmp_path / "TA-test"
+    ta_dir.mkdir()
+    (ta_dir / "default").mkdir()
+    (ta_dir / "default" / "app.conf").touch()
+    (ta_dir / "local").mkdir()
+
+    # Simulate permission error
+    ta_dir.chmod(0o000)
+
+    with pytest.raises(InvalidWorkingDirectoryError, match="Permission denied"):
+        validate_working_context(ta_dir)
+
+    # Cleanup for other tests
+    ta_dir.chmod(0o755)
+
+
+def test_find_conf_files_permission_error(tmp_path):
+    """Test finding conf files with permission error."""
+    conf_dir = tmp_path / "conf"
+    conf_dir.mkdir()
+    conf_dir.chmod(0o000)
+
+    try:
+        find_conf_files(conf_dir)  # This should raise PermissionError
+    finally:
+        # Restore permissions so cleanup can occur
+        conf_dir.chmod(0o755)
+
+
+def test_get_meta_files_missing_local(sample_ta_dir):
+    """Test getting meta files when local.meta is missing."""
+    with pytest.raises(FileNotFoundError, match="local.meta not found"):
+        get_meta_files(sample_ta_dir)

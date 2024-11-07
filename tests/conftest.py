@@ -1,5 +1,6 @@
 """Shared test fixtures and configuration."""
 
+import logging
 from pathlib import Path
 from typing import Generator
 
@@ -13,6 +14,37 @@ def pytest_configure(config):
         "markers",
         "integration: mark test as integration test",
     )
+
+
+@pytest.fixture(autouse=True)
+def configure_logging():
+    """Configure logging for tests."""
+    # Get the root logger
+    root = logging.getLogger()
+    # Store original level to restore after test
+    original_level = root.level
+    # Set root logger to capture all levels
+    root.setLevel(logging.DEBUG)
+    
+    yield
+    
+    # Restore original logging level
+    root.setLevel(original_level)
+
+
+@pytest.fixture(autouse=True)
+def reset_logger():
+    """Reset logger between tests."""
+    # Reset the global instance
+    import bydefault.utils.logger as logger_module
+    logger_module._logger_instance = None
+    
+    # Reset the bydefault logger
+    logger = logging.getLogger("bydefault")
+    logger.handlers = []
+    logger.setLevel(logging.NOTSET)
+    logger.propagate = True
+    yield
 
 
 @pytest.fixture
