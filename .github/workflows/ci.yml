@@ -12,7 +12,6 @@ jobs:
     name: python
     runs-on: ubuntu-latest
 
-
     strategy:
       matrix:
         python-version: ["3.11"]
@@ -29,9 +28,6 @@ jobs:
           version: "0.4.30"
           enable-cache: true
           cache-dependency-glob: "uv.lock"
-          version: "0.4.30"
-          enable-cache: true
-          cache-dependency-glob: "uv.lock"
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -41,9 +37,6 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
-        run: uv sync --all-extras --dev
-        env:
-          UV_SYSTEM_PYTHON: 1
         run: uv sync --all-extras --dev
         env:
           UV_SYSTEM_PYTHON: 1
@@ -63,7 +56,6 @@ jobs:
           verbose: true
 
   lint:
-    name: python-lint
     name: python-lint
     runs-on: ubuntu-latest
     steps:
@@ -85,15 +77,10 @@ jobs:
 
       - name: Set up Python
         uses: actions/setup-python@v5
-        uses: actions/setup-python@v5
         with:
-          python-version-file: "pyproject.toml"
           python-version-file: "pyproject.toml"
 
       - name: Install dependencies
-        run: uv sync --all-extras --dev
-        env:
-          UV_SYSTEM_PYTHON: 1
         run: uv sync --all-extras --dev
         env:
           UV_SYSTEM_PYTHON: 1
@@ -116,11 +103,9 @@ jobs:
 
   pr-checks:
     name: pr-validation
-    name: pr-validation
     needs: [test, lint]
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
-
 
     steps:
       - uses: actions/checkout@v4
