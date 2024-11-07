@@ -85,6 +85,7 @@ def test_parser_only_comment():
     assert result.value == ""
     assert result.inline_comment == "comment"
 
+
 def test_parse_empty_value_with_comment():
     """Test parsing empty value with comment."""
     result = ConfValueParser.parse("# comment")

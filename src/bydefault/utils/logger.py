@@ -25,16 +25,18 @@ def setup_logger(log_level: int = logging.INFO) -> logging.Logger:
 
     # Create logger
     logger = logging.getLogger("bydefault")
-    
+
     # Clear any existing handlers
     logger.handlers = []
-    
+
     # Configure logger with provided log level
     logger.setLevel(log_level)
     logger.propagate = False
-    
+
     # Add handler with matching log level
-    handler = logging.StreamHandler(sys.stderr)  # Use stderr for consistency with pytest
+    handler = logging.StreamHandler(
+        sys.stderr
+    )  # Use stderr for consistency with pytest
     handler.setLevel(log_level)
     formatter = logging.Formatter("%(message)s")
     handler.setFormatter(formatter)

@@ -77,7 +77,7 @@ class ConfValueParser:
 
         # Filter out empty strings before joining
         value_parts = [part for part in value_parts if part]
-        
+
         return ParsedValue(
             value=" ".join(value_parts),
             continuation_lines=continuation_lines,

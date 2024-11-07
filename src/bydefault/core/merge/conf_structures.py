@@ -183,7 +183,8 @@ class ConfFile:
             number: Line number
             content: Optional content (ConfValue or ConfStanza)
             is_blank: Whether this is a blank line (default: False)
-            is_comment: Whether this is a comment line (automatically set if comment_text provided)
+            is_comment: Whether this is a comment line (automatically set if
+                comment_text provided)
             comment_text: Text of the comment if this is a comment line
 
         Returns:

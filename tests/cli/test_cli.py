@@ -35,6 +35,7 @@ def test_merge_command_exists(cli_runner):
     assert result.exit_code == 0
     assert "Usage:" in result.output
 
+
 @pytest.mark.skip(reason="Merge functionality not yet implemented")
 def test_merge_command_with_invalid_path(cli_runner):
     """Test merge command with invalid path."""

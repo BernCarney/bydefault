@@ -37,7 +37,7 @@ def merge(ta_name: Optional[str] = None) -> None:
     """
     try:
         working_dir = validate_working_context(Path.cwd())
-        ta_path: TAPath = Path(working_dir / ta_name) if ta_name else None
+        Path(working_dir / ta_name) if ta_name else None
 
         # TODO: Implement merge functionality
         logger.info("Merge functionality not yet implemented")

@@ -12,8 +12,9 @@ def reset_logger():
     """Reset logger between tests."""
     # We should also reset the global instance
     import bydefault.utils.logger as logger_module
+
     logger_module._logger_instance = None
-    
+
     logger = logging.getLogger("bydefault")
     logger.handlers = []
     logger.setLevel(logging.NOTSET)
@@ -56,22 +57,22 @@ def test_logger_messages(caplog) -> None:
     """Test logger message formatting."""
     # Configure caplog to capture all levels
     caplog.set_level(logging.DEBUG)
-    
+
     logger = setup_logger()
     logger.propagate = True  # Ensure messages propagate to root logger
-    
+
     # Test messages at different levels
     test_message = "Test message"
     error_message = "Error message"
-    
+
     logger.info(test_message)
     logger.error(error_message)
-    
+
     # Check the messages in caplog
     assert len(caplog.records) == 2
-    assert caplog.records[0].levelname == 'INFO'
+    assert caplog.records[0].levelname == "INFO"
     assert caplog.records[0].message == test_message
-    assert caplog.records[1].levelname == 'ERROR'
+    assert caplog.records[1].levelname == "ERROR"
     assert caplog.records[1].message == error_message
 
 
@@ -79,29 +80,29 @@ def test_logger_levels(caplog):
     """Test logger at different levels."""
     # Configure caplog to capture all levels
     caplog.set_level(logging.DEBUG)
-    
+
     logger = setup_logger(log_level=logging.DEBUG)
     logger.propagate = True  # Ensure messages propagate to root logger
-    
+
     messages = {
         "debug": "Debug message",
         "info": "Info message",
         "warning": "Warning message",
-        "error": "Error message"
+        "error": "Error message",
     }
-    
+
     # Log messages at different levels
     logger.debug(messages["debug"])
     logger.info(messages["info"])
     logger.warning(messages["warning"])
     logger.error(messages["error"])
-    
+
     # Verify all messages were captured
     assert len(caplog.records) == 4
-    
+
     # Verify each message and its level
     expected_levels = [logging.DEBUG, logging.INFO, logging.WARNING, logging.ERROR]
-    for record, level in zip(caplog.records, expected_levels):
+    for record, level in zip(caplog.records, expected_levels, strict=True):
         assert record.levelno == level
 
 

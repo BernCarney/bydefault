@@ -25,9 +25,9 @@ def configure_logging():
     original_level = root.level
     # Set root logger to capture all levels
     root.setLevel(logging.DEBUG)
-    
+
     yield
-    
+
     # Restore original logging level
     root.setLevel(original_level)
 
@@ -37,8 +37,9 @@ def reset_logger():
     """Reset logger between tests."""
     # Reset the global instance
     import bydefault.utils.logger as logger_module
+
     logger_module._logger_instance = None
-    
+
     # Reset the bydefault logger
     logger = logging.getLogger("bydefault")
     logger.handlers = []
