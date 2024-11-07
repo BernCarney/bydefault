@@ -1,5 +1,9 @@
 # byDefault
 
+[![CI](https://github.com/BernCarney/bydefault/actions/workflows/ci.yml/badge.svg)](https://github.com/BernCarney/bydefault/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/BernCarney/bydefault/graph/badge.svg?token=M0BNKJLBHC)](https://codecov.io/gh/BernCarney/bydefault)
+![Python](https://img.shields.io/badge/python-≥3.11-blue)
+
 CLI tools for Splunk 9.2.2 TA development and maintenance.
 
 ## Features
