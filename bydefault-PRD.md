@@ -74,19 +74,26 @@ $ git push origin feat/new-dashboard
      - Setup error message formatting
      - Implement verbosity controls
 
-   - **P2: File Detection**
+   - **P2: Basic Validation**
+     - Implement core validation rules
+     - Setup validation command structure
+     - Create validation reporting
+     - Enable automatic validation in other commands
+     - Define validation error handling
+
+   - **P3: File Detection**
      - TA directory validation
      - Change detection and reporting
      - Local/default file comparison
      - Status display system
 
-   - **P3: Configuration Sorting**
+   - **P4: Configuration Sorting**
      - Stanza sorting by type and priority
      - Setting organization within stanzas
      - Structure and comment preservation
      - Format maintenance
 
-   - **P4: Configuration Merging**
+   - **P5: Configuration Merging**
      - Local to default file merging
      - Conflict detection and resolution
      - Format and structure preservation
@@ -153,7 +160,7 @@ $ git push origin feat/new-dashboard
    │       ├── core/              # Core business logic
    │       │   ├── __init__.py
    │       │   ├── scanner.py     # File detection logic
-   │       │   ├── sorter.py      # Sorting implementation
+   │       ���   ├── sorter.py      # Sorting implementation
    │       │   ├── merger.py      # Merge logic
    │       │   └── validator.py   # Validation rules
    │       ├── models/            # Data models
@@ -300,7 +307,7 @@ $ git push origin feat/new-dashboard
    │   │   ├── transforms.conf          # Data transformations
    │   │   ├── eventtypes.conf          # Event type definitions
    │   │   ├── tags.conf                # Tag configurations
-   │   │   └── data/
+   ���   │   └── data/
    │   │       └── lookups/             # Default lookup files
    │   │           ├── example.csv
    │   │           └── mappings.csv
@@ -347,7 +354,36 @@ $ git push origin feat/new-dashboard
            - Default: Summary information only
            - Verbose: Detailed operation information
 
-   b. P2 - File Detection:
+      Example Commands:
+
+      ```bash
+       $ bydefault --help
+       Usage: bydefault [OPTIONS] COMMAND [ARGS]...
+
+       CLI tools for Splunk TA development and maintenance.
+
+       Options:
+         --verbose    Enable detailed output
+         --dry-run    Show what would be done without making changes
+         --version    Show version information
+         --help       Show this message and exit
+
+       Commands:
+         scan        Detect and report configuration changes
+         sort        Sort configuration files maintaining structure
+         merge       Merge local configurations into default
+         validate    Verify configuration structure and syntax
+         bumpver     Update version numbers across TAs
+      ```
+
+   b. P2 - Basic Validation:
+      1. Implement core validation rules
+      2. Setup validation command structure
+      3. Create validation reporting
+      4. Enable automatic validation in other commands
+      5. Define validation error handling
+
+   c. P3 - File Detection:
       1. TA Structure Validation:
          - Verify app.conf presence and basic structure
          - Validate required directory presence (local/default)
@@ -365,7 +401,35 @@ $ git push origin feat/new-dashboard
            - Stanza presence in local files
            - Basic change summary
 
-   c. P3 - Configuration Sorting:
+      Example Usage:
+
+      ```bash
+       $ bydefault scan
+       Scanning for changes...
+       Changes detected in: my_custom_ta
+         Modified files:
+           local/props.conf
+             [new_sourcetype] - New stanza
+             [existing_sourcetype] - Modified
+           local/transforms.conf
+             [lookup_transform] - New stanza
+
+       $ bydefault scan --verbose my_custom_ta
+       Scanning my_custom_ta for changes...
+       Found local/props.conf:
+         [new_sourcetype]
+           TRANSFORMS-example = new_example
+           SHOULD_LINEMERGE = false
+         [existing_sourcetype]
+           # Modified from: TRANSFORMS-old = old_value
+           TRANSFORMS-old = new_value
+       Found local/transforms.conf:
+         [lookup_transform]
+           filename = new_lookup.csv
+           max_matches = 1
+       ```
+
+   d. P4 - Configuration Sorting:
       1. Stanza Classification and Order:
          - Primary Order (Highest to Lowest Priority):
            - Global settings (no stanza header)
@@ -411,144 +475,590 @@ $ git push origin feat/new-dashboard
          - Maintain consistent sorting across all TAs
          - Run automatically after merge operations
 
-   d. P4 - Configuration Merging:
-      1. Pre-merge Validation:
-         - Verify file compatibility
-         - Check for conflicts
-         - Validate stanza integrity
-         - Ensure backup availability
+      Example Usage:
+
+      ```bash
+       $ bydefault sort default/props.conf
+       Sorting: default/props.conf
+         ✓ Global settings reordered
+         ✓ [default] stanza positioned
+         ✓ 3 wildcard stanzas sorted
+         ✓ 12 specific stanzas sorted
+         ✓ Comments preserved
+
+      $ bydefault sort --verbose default/props.conf
+      Sorting: default/props.conf
+        Processing global settings...
+          ✓ 3 settings reordered
+        Positioning [default] stanza...
+          ✓ Stanza moved to line 12
+        Sorting wildcard stanzas...
+          ✓ [*::example] moved to line 25
+          ✓ [*::test] moved to line 32
+          ✓ [*::production] moved to line 39
+        Sorting specific stanzas...
+          ✓ [source::*] group sorted
+          ✓ [host::*] group sorted
+          ✓ [sourcetype::*] group sorted
+        Preserving comments...
+          ✓ 15 comment blocks maintained
+      ```
+
+   e. P5 - Configuration Merging:
+      1. Merge Scope:
+         - Support merging at multiple levels:
+           - Full project (all TAs)
+           - Single TA (by path or name)
+           - Single configuration file
+         - Process configuration and metadata files:
+           - Configuration files:
+             - app.conf          # Required TA configuration
+             - inputs.conf       # Data input configurations
+             - props.conf        # Source type definitions
+             - transforms.conf   # Data transformations
+             - outputs.conf      # Data forwarding settings
+             - eventtypes.conf   # Event type definitions
+             - macros.conf       # Search macros
+             - tags.conf        # Tag definitions
+             - savedsearches.conf # Saved searches
+           - Metadata files:
+             - local.meta
+             - default.meta
+
+         Note: For a complete list of configuration files, see:
+         <https://docs.splunk.com/Documentation/Splunk/9.2.2/Admin/Wheretofindtheconfigurationfiles>
+         - Remove local files/directories after successful merge
+         - Support --dry-run for verification
 
       2. Merge Process:
-         - Create versioned backup
-         - Apply changes incrementally
-         - Validate each modification
-         - Maintain audit trail
+         - For each stanza in local:
+           - Update existing key/value pairs in default
+           - Add new key/value pairs to default
+           - Retain existing default values not in local
+         - Maintain stanza structure and comments
+         - Remove local files after successful merge
 
-2. Safety Requirements:
+         Example Merge Operation:
 
-   a. File Operations:
-      - Read-only for initial operations
-      - Atomic writes for modifications
-      - Automatic backup creation
-      - Rollback capability
+         ```ini
+         # default/props.conf (before)
+         [mystanza]
+         TRANSFORMS-example = example
+         SHOULD_LINEMERGE = false
 
-   b. Validation Rules:
-      - UTF-8 encoding required
-      - Valid stanza format
-      - Proper key-value syntax
-      - Structural integrity
+         # local/props.conf
+         [mystanza]
+         TRANSFORMS-example = new_example
+         EVAL-new_field = value
 
-3. Processing Standards:
+         # default/props.conf (after)
+         [mystanza]
+         TRANSFORMS-example = new_example
+         SHOULD_LINEMERGE = false
+         EVAL-new_field = value
+         ```
 
-   a. Configuration Files:
-      - Maintain original formatting
-      - Preserve comments
-      - Keep stanza grouping
-      - Handle special characters
+      3. Operation Output:
+         - Display simple success/failure summary
+         - Show count of merged files and stanzas
+         - Indicate removal of local files
+         - Provide detailed output with --verbose
 
-   b. Operation Logging:
-      - Track all modifications
-      - Record validation results
-      - Log error conditions
-      - Maintain operation history
+         Example Output:
 
-4. Error Handling:
+         ```bash
+         $ bydefault merge my_custom_ta
+         Merging changes in: my_custom_ta
+           ✓ props.conf: 2 stanzas merged
+           ✓ transforms.conf: 1 stanza merged
+         Local files removed
+         ```
 
-   a. Recovery Process:
-      - Automatic backup restoration
-      - Clear error reporting
-      - Detailed failure logs
-      - User guidance
+## Safety, Validation, and Error Handling
 
-   b. Validation Failures:
-      - Stop on first error
-      - Report specific issue
-      - Suggest resolution
-      - Maintain original state
+1. Backup Strategy:
+   - Create backups only for file-altering operations (e.g., sort, merge) unless --dry-run is used.
+   - Maintain only the latest backup per operation.
+   - Store backups in a dedicated directory with clear naming conventions.
+
+   Example Backup Operation:
+
+   ```bash
+   $ bydefault merge my_custom_ta
+   Creating backup: .bydefault/backups/merge_2024-03-22_142015/
+     ✓ default/props.conf -> props.conf.bak
+     ✓ default/transforms.conf -> transforms.conf.bak
+   Proceeding with merge...
+   ```
+
+2. Validation Rules:
+   - Apply basic validation for all configuration and metadata files:
+     - Ensure valid stanza format and proper key-value syntax.
+     - Use static rulesets for .conf and .meta files.
+   - Automatically validate during file-altering commands.
+   - Allow ad-hoc validation using the validate command.
+
+   Example Validation:
+
+   ```bash
+   $ bydefault validate default/props.conf
+   Validating: default/props.conf
+     ✓ File encoding: UTF-8
+     ✓ Stanza format: Valid
+     ✓ Key-value pairs: Valid
+     ✓ Structure: Valid
+
+   $ bydefault validate default/invalid.conf
+   Validating: default/invalid.conf
+     ✗ Error on line 15: Invalid stanza format
+     ✗ Error on line 23: Missing value for key 'TRANSFORMS'
+   Validation failed: 2 errors found
+   ```
+
+3. Error Reporting:
+   - Provide clear and concise error messages for end-users.
+   - Include file path and line number for validation errors.
+   - Differentiate error types (e.g., command not found, file not found, validation errors).
+
+   Example Error Messages:
+
+   ```bash
+   $ bydefault merge nonexistent_ta
+   Error: TA not found - 'nonexistent_ta' does not exist or is not a valid TA
+
+   $ bydefault sort default/props.conf
+   Error in default/props.conf (line 45):
+     Invalid stanza format: Missing closing bracket ']'
+   Operation aborted: File validation failed
+
+   $ bydefault merge my_custom_ta
+   Error: Permission denied
+     Cannot write to default/props.conf
+     Please check file permissions and try again
+   ```
+
+4. Logging and Auditing:
+   - Implement basic logging for file-altering operations.
+   - Logs should be accessible to end-users.
+   - Expand logging capabilities as the tool matures.
+
+5. Recovery Process:
+   - Enable automatic restoration from backups in case of failure.
+   - Provide detailed failure logs for troubleshooting.
+   - Offer user guidance for manual recovery steps if needed.
+
+6. Operation Standards:
+   - Ensure atomic writes to prevent partial updates.
+   - Maintain operation history for audit purposes.
+   - Log validation results and any error conditions.
 
 ### Testing Requirements
 
-1. Test Cases:
-   - Command-line interface
-   - File operations
-   - Configuration processing
-   - Error conditions
-   - Edge cases
+1. Phase-Specific Testing:
 
-2. Validation:
-   - Input validation
-   - Output verification
-   - Operation correctness
-   - Error handling
+   a. P1 - Basic CLI Testing:
+      - Command Registration:
+         - Verify all commands are registered
+         - Test help text for each command
+         - Validate option handling
+      - Global Options:
+         - Test --verbose output levels
+         - Verify --dry-run behavior
+         - Check version display
+      - Output Formatting:
+         - Verify color schemes
+         - Test progress indicators
+         - Check error message formatting
+
+   b. P2 - Basic Validation Testing:
+      - Validation Rules:
+         - Test stanza format validation
+         - Verify key-value pair syntax
+         - Check file encoding detection
+      - Validation Command:
+         - Test standalone validation
+         - Verify validation reporting
+         - Check error handling
+      - Edge Cases:
+         - Test empty files
+         - Verify handling of malformed content
+         - Check unicode handling
+
+   c. P3 - File Detection Testing:
+      - TA Structure:
+         - Verify app.conf detection
+         - Test directory structure validation
+         - Check metadata handling
+      - Change Detection:
+         - Test local file identification
+         - Verify stanza change detection
+         - Check .gitignore integration
+      - Status Display:
+         - Test default output format
+         - Verify verbose output
+         - Check error conditions
+      - Validation Integration:
+         - Verify validation runs during detection
+         - Test invalid file handling
+         - Check validation error reporting
+
+   d. P4 - Configuration Sorting Testing:
+      - Stanza Ordering:
+         - Test primary sort order
+         - Verify secondary sort rules
+         - Check stanza grouping
+      - Comment Handling:
+         - Test comment association rules
+         - Verify comment preservation
+         - Check multi-line comments
+      - File Processing:
+         - Test single file sorting
+         - Verify full TA sorting
+         - Check metadata file sorting
+      - Validation Integration:
+         - Test validation before sorting
+         - Verify sort aborts on validation failure
+         - Check validation error handling during sort
+
+   e. P5 - Configuration Merging Testing:
+      - Merge Operations:
+         - Test file-level merging
+         - Verify stanza-level merging
+         - Check setting-level merging
+      - Backup System:
+         - Test backup creation
+         - Verify backup restoration
+         - Check cleanup processes
+      - Error Recovery:
+         - Test partial merge recovery
+         - Verify rollback functionality
+         - Check error reporting
+      - Validation Integration:
+         - Test validation before merge
+         - Verify merge aborts on validation failure
+         - Check validation error handling during merge
+
+2. Cross-Phase Testing:
+   - Command Integration:
+      - Test command sequences
+      - Verify state preservation
+      - Check error propagation
+   - Data Integrity:
+      - Verify file content preservation
+      - Test configuration validity
+      - Check metadata consistency
+   - Performance:
+      - Test resource usage
+      - Verify operation timeouts
+      - Check memory constraints
+
+3. Test Environment Requirements:
+   - Directory Structures:
+      - Single TA setup
+      - Multiple TA project
+      - Various configuration types
+   - File Variations:
+      - Different configuration files
+      - Various metadata structures
+      - Edge case examples
+   - Error Conditions:
+      - Permission issues
+      - Invalid configurations
+      - Incomplete structures
 
 ### Documentation Requirements
 
 1. Code Documentation:
-   - Comprehensive docstrings
-   - Type hints
-   - Implementation notes
-   - Performance considerations
+   - Python Docstrings:
+      - Use comprehensive docstrings for all functions and classes
+      - Include type hints for all parameters and returns
+      - Document exceptions that may be raised
+      - Provide usage examples for complex functionality
+      - Follow PEP 257 docstring conventions
+
+      Example Docstring:
+
+      ```python
+      def validate_stanza(content: str, file_category: str = "conf") -> ValidationResult:
+          """Validate basic stanza structure and syntax.
+
+          Args:
+              content: The text content to validate as a stanza
+              file_category: The type of file being validated ("conf" or "meta")
+
+          Returns:
+              ValidationResult: Object containing validation status and any errors
+
+          Raises:
+              ValidationError: If stanza structure is invalid
+              ValueError: If file_category is not "conf" or "meta"
+
+          Example:
+              >>> result = validate_stanza("[stanza_name]\\nkey = value")
+              >>> assert result.is_valid
+              >>> result = validate_stanza("[invalid", file_category="meta")
+              >>> assert not result.is_valid
+              >>> assert "Missing closing bracket" in result.errors
+          """
+      ```
 
 2. User Documentation:
-   - Installation guide
-   - Command reference
-   - Usage examples
-   - Best practices
+   - Installation and Setup:
+      - Environment requirements
+      - UV installation steps
+      - Initial configuration
+      - Verification steps
+
+   - Command Reference:
+      - Detailed description of each command
+      - All available options and flags
+      - Example usage with output
+      - Common use cases
+
+   - Workflow Examples:
+      - Basic TA development workflow
+      - Configuration management scenarios
+      - Error recovery procedures
+      - Best practices
+
+3. Development Documentation:
+   - Architecture Overview:
+      - Component relationships
+      - Data flow diagrams
+      - Key abstractions
+      - Extension points
+
+   - Contributing Guidelines:
+      - Development setup
+      - Testing procedures
+      - Code style requirements
+      - PR process
+
+4. Maintenance Documentation:
+   - Version History:
+      - Detailed changelog
+      - Migration guides
+      - Breaking changes
+      - Deprecation notices
+
+   - Troubleshooting Guide:
+      - Common issues
+      - Error message explanations
+      - Recovery procedures
+      - Support resources
 
 ### Error Handling Requirements
 
-1. Error Categories:
-   - CLIErrors: Command usage issues
-   - FileErrors: File operations
-   - ConfigErrors: Configuration processing
-   - ValidationErrors: Data validation
-   - ProcessingErrors: Operation failures
+1. Error Categories and Examples:
 
-2. Recovery Behavior:
-   - Automatic backups
-   - Rollback on failure
-   - Detailed error messages
-   - Operation logging
+   a. CLIErrors:
+      - Invalid command usage
+      - Unknown options
+      - Missing required arguments
+
+      Example:
+
+      ```bash
+      $ bydefault sort
+      Error: Missing argument 'FILE'
+        sort command requires a configuration file path
+        Try 'bydefault sort --help' for usage information
+      ```
+
+   b. ValidationErrors:
+      - Invalid stanza format
+      - Malformed key-value pairs
+      - Unsupported file type
+
+      Example:
+
+      ```bash
+      $ bydefault validate default/props.conf
+      Error in default/props.conf (line 23):
+        Invalid stanza format: Missing closing bracket ']'
+        [sourcetype:my_source
+                           ^
+      ```
+
+   c. FileSystemErrors:
+      - File not found
+      - Permission denied
+      - Invalid file structure
+
+      Example:
+
+      ```bash
+      $ bydefault merge my_ta
+      Error: Invalid TA structure
+        Directory 'my_ta' is missing required 'default' folder
+        Expected structure:
+          my_ta/
+          ├── default/
+          │   └── app.conf
+          └── local/
+      ```
+
+   d. OperationErrors:
+      - Merge conflicts
+      - Sort failures
+      - Backup failures
+
+      Example:
+
+      ```bash
+      $ bydefault merge my_ta
+      Error: Backup creation failed
+        Could not create backup directory: Permission denied
+        Please check permissions for .bydefault/backups/
+      Operation aborted: No changes made
+      ```
+
+2. Error Recovery Procedures:
+   - Automatic rollback for failed operations
+   - Backup restoration for file alterations
+   - Clear user guidance for resolution
+   - Operation state logging
+
+3. Error Reporting Standards:
+   - Include error location (file, line)
+   - Provide context for the error
+   - Suggest resolution steps
+   - Show command help when relevant
+
+4. Recovery Validation:
+   - Verify system state after recovery
+   - Confirm backup restoration
+   - Check file integrity
+   - Report recovery status
 
 ### Performance Requirements
 
-1. Resource Management:
-   - Efficient file handling
-   - Memory-conscious processing
-   - Scalable operations
+1. Core Requirements:
+   - Modularity:
+      - Keep components loosely coupled
+      - Enable easy feature additions
+      - Support future extensibility
+      - Allow component replacement
 
-2. Operation Limits:
-   - Maximum file sizes
-   - Directory depth restrictions
-   - Processing timeouts
-   - Memory constraints
+   - Scalability:
+      - Handle multiple TAs efficiently
+      - Process large configuration files
+      - Support batch operations
+      - Maintain performance with increased load
+
+   - Operation Timeouts:
+      - Default timeout: 30 seconds per operation
+      - Configurable via environment variable
+      - Clear timeout messages
+      - Clean process termination
+
+   Example Timeout:
+
+   ```bash
+   $ bydefault merge large_ta
+   Error: Operation timed out after 30 seconds
+     Consider breaking operation into smaller chunks
+     Or adjust BYDEFAULT_TIMEOUT environment variable
+   ```
 
 ## Future Considerations
 
-- Configuration templates
-- Batch processing
-- Remote operations
-- Integration with Splunk Cloud
+1. Development Tools:
+   - Scaffold command for new TA creation
+   - Template system for common configurations
+   - Project-wide search and replace functionality
+
+2. Validation Extensions:
+   - Serverclass configuration validation
+   - Cross-TA dependency checking
+   - Custom validation rule definitions
+
+3. Maintenance Tools:
+   - Cleanup command for stale configurations
+   - Usage analysis for TAs and stanzas
+   - Deployment status tracking
+
+4. Integration Features:
+   - Remote operations support
+   - CI/CD pipeline integration
+   - Splunk Cloud compatibility
+
+5. Performance Enhancements:
+   - Parallel processing for large projects
+   - Incremental backup system
+   - Configuration state caching:
+     - Cache validated file structures
+     - Store sorted stanza orders
+     - Remember recent change detections
+
+   Example Cache Usage:
+
+   ```bash
+   $ bydefault sort default/props.conf
+   Using cached validation results...
+   Sorting: default/props.conf
+     ✓ Stanzas reordered: 5
+     ✓ Settings sorted: 23
+
+   $ bydefault scan
+   Using cached TA structure...
+   Changes detected since last scan:
+     Modified files:
+       local/props.conf
+   ```
 
 ## Success Criteria
 
-1. Functional:
-   - Reliable file operations
-   - Accurate configuration processing
-   - Consistent results
-   - User-friendly interface
+1. Phase Completion:
+   - P1: CLI Framework
+      - All commands properly registered and documented
+      - Consistent output formatting across commands
+      - Proper handling of global options
+      - Clear error message presentation
 
-2. Technical:
-   - Clean code architecture
-   - Comprehensive test coverage
-   - Clear documentation
-   - Efficient performance
+   - P2: Basic Validation
+      - Reliable stanza structure validation
+      - Extensible validation API
+      - Clear validation error reporting
+      - Proper handling of edge cases
 
-3. Integration:
-   - Works with Splunk 9.2.2
-   - Supports standard TA structures
-   - Handles all valid configurations
-   - Provides clear feedback
+   - P3: File Detection
+      - Accurate TA structure identification
+      - Reliable change detection
+      - Integration with validation command
+      - Clear change reporting
+      - Proper handling of local/default comparison
+
+   - P4: Configuration Sorting
+      - Correct stanza ordering
+      - Integration with validation command
+      - Reliable comment preservation
+      - Consistent sorting across file types
+      - Proper handling of complex configurations
+
+   - P5: Configuration Merging
+      - Accurate merging of configurations
+      - Integration with validation command
+      - Clean local file removal
+      - Reliable backup creation
+      - Proper error recovery
+
+2. Core Requirements:
+   - Reliability:
+      - No data loss during operations
+      - Failures should be safe
+         - Changes are only made after all validation checks pass
+         - Failed operations must not leave partial results
+         - Any started operations must complete or be fully reverted on failure
+      - Consistent behavior across environments
+      - Proper error handling and recovery
+      - Accurate configuration processing
+
+   - Usability:
+      - Clear command structure
+      - Helpful error messages
+      - Intuitive workflow
+      - Comprehensive help text
 
 ## Development Phases
 
@@ -581,7 +1091,26 @@ $ git push origin feat/new-dashboard
    - Help text verification tests
    - Flag behavior tests
 
-### P2: File Detection
+### P2: Basic Validation
+
+**Core Implementation:**
+
+- Implement core validation rules
+- Setup validation command structure
+- Create validation reporting
+- Enable automatic validation in other commands
+- Define validation error handling
+
+**Success Criteria:**
+
+1. Validation Rules
+   - Implement core validation rules
+   - Setup validation command structure
+   - Create validation reporting
+   - Enable automatic validation in other commands
+   - Define validation error handling
+
+### P3: File Detection
 
 **Core Implementation:**
 
@@ -610,7 +1139,7 @@ $ git push origin feat/new-dashboard
    - Status output format tests
    - Error condition tests
 
-### P3: Configuration Sorting
+### P4: Configuration Sorting
 
 **Core Implementation:**
 
@@ -642,7 +1171,7 @@ $ git push origin feat/new-dashboard
    - Comment handling tests
    - Edge case handling tests
 
-### P4: Configuration Merging
+### P5: Configuration Merging
 
 **Core Implementation:**
 
