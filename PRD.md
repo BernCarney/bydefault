@@ -82,6 +82,8 @@ $ git push origin feat/new-dashboard
      - Define validation error handling
 
    - **P3: File Detection**
+     - Basic file I/O operations
+     - File type detection and validation
      - TA directory validation
      - Change detection and reporting
      - Local/default file comparison
@@ -1071,29 +1073,34 @@ $ git push origin feat/new-dashboard
 **Core Implementation:**
 
 - Command-line interface framework
-- File I/O operations (read-only)
-- Basic file type detection
+  - Global options setup (--verbose, --dry-run, --version)
+  - Help text system
+  - Output formatting templates
+  - Error message system
 - Project structure setup
+  - Directory organization
+  - Package configuration
+  - Development tooling setup
 
 **Success Criteria:**
 
 1. CLI Framework
-   - All commands return proper help text
+   - Root command returns proper help text
    - Global flags work as expected (--verbose, --dry-run)
-   - Command structure matches specification
-   - Error messages are clear and actionable
+   - Version information is displayed correctly
+   - All help text clearly indicates which commands are not yet implemented
 
-2. File Operations
-   - Can identify Splunk configuration files
-   - Can read file contents without parsing
-   - Supports recursive directory scanning
-   - Handles file access errors gracefully
+2. Output System
+   - Consistent formatting across all messages
+   - Error messages follow defined template
+   - Verbose output works with global flag
+   - Color schemes work in supported terminals
 
 3. Testing
-   - CLI commands have 100% test coverage
-   - File operations have error handling tests
+   - CLI initialization has 100% test coverage
    - Help text verification tests
-   - Flag behavior tests
+   - Global flag behavior tests
+   - Output formatting tests
 
 ### P2: Basic Validation
 
@@ -1118,6 +1125,14 @@ $ git push origin feat/new-dashboard
 
 **Core Implementation:**
 
+- Basic file I/O operations
+  - Can identify Splunk configuration files
+  - Can read file contents without parsing
+  - Supports recursive directory scanning
+  - Handles file access errors gracefully
+  - File reading and validation
+  - Error handling for file operations
+  - File type detection
 - TA directory validation
 - Change detection and reporting
 - Local/default file comparison
@@ -1125,19 +1140,25 @@ $ git push origin feat/new-dashboard
 
 **Success Criteria:**
 
-1. Change Detection
+1. File Operations
+   - Reliable file reading and validation
+   - Proper error handling for file operations
+   - File type detection accuracy
+   - Performance within specified limits
+
+2. Change Detection
    - Identifies new files in local directory
    - Detects modified stanzas
    - Reports untracked files
    - Shows metadata changes when requested
 
-2. Status Output
+3. Status Output
    - Clear, git-style status display
    - Grouped by TA when multiple present
    - Shows file-level changes
    - Shows stanza-level changes
 
-3. Testing
+4. Testing
    - Tests for all change scenarios
    - Directory structure validation tests
    - Status output format tests
