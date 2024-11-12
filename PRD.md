@@ -230,7 +230,7 @@ $ git push origin feat/new-dashboard
        - Built-in help text generation
        - Type validation and conversion
 
-     - rich >= 13.0.0 (Terminal formatting)
+     - rich >= 13.9.4 (Terminal formatting)
        - [Documentation](https://rich.readthedocs.io/)
        - Clear status output
        - Structured error messages
@@ -238,14 +238,14 @@ $ git push origin feat/new-dashboard
        - Consistent formatting
 
    - External Development and Distribution:
-     - uv >= 0.1.0 (Package and environment management)
+     - uv >= 0.5.1 (Package and environment management)
        - [Documentation](https://docs.astral.sh/uv/)
        - Virtual environment management
        - Package installation and management
        - Tool distribution
        - Dependency resolution
 
-     - ruff >= 0.2.0 (Linting and formatting)
+     - ruff >= 0.7.3 (Linting and formatting)
        - [Documentation](https://docs.astral.sh/ruff/)
        - Code formatting
        - Import sorting
@@ -253,19 +253,19 @@ $ git push origin feat/new-dashboard
        - Style enforcement
 
    - External Testing Tools:
-     - pytest >= 7.0.0 (Testing framework)
+     - pytest >= 8.3.3 (Testing framework)
        - [Documentation](https://docs.pytest.org/)
        - Test discovery and execution
        - Fixture management
        - Assertion introspection
 
-     - pytest-cov >= 4.1.0 (Coverage reporting)
+     - pytest-cov >= 6.0.0 (Coverage reporting)
        - [Documentation](https://pytest-cov.readthedocs.io/)
        - Coverage measurement
        - Report generation
        - Coverage enforcement
 
-     - pytest-mock >= 3.12.0 (Mocking in tests)
+     - pytest-mock >= 3.14.0 (Mocking in tests)
        - [Documentation](https://pytest-mock.readthedocs.io/)
        - Function/method mocking
        - Call verification
