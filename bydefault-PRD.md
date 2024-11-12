@@ -160,7 +160,7 @@ $ git push origin feat/new-dashboard
    │       ├── core/              # Core business logic
    │       │   ├── __init__.py
    │       │   ├── scanner.py     # File detection logic
-   │       ���   ├── sorter.py      # Sorting implementation
+   │       │   ├── sorter.py      # Sorting implementation
    │       │   ├── merger.py      # Merge logic
    │       │   └── validator.py   # Validation rules
    │       ├── models/            # Data models
@@ -307,7 +307,7 @@ $ git push origin feat/new-dashboard
    │   │   ├── transforms.conf          # Data transformations
    │   │   ├── eventtypes.conf          # Event type definitions
    │   │   ├── tags.conf                # Tag configurations
-   ���   │   └── data/
+   │   │   └── data/
    │   │       └── lookups/             # Default lookup files
    │   │           ├── example.csv
    │   │           └── mappings.csv
@@ -1006,6 +1006,10 @@ $ git push origin feat/new-dashboard
      Modified files:
        local/props.conf
    ```
+
+6. Future Platform Support:
+   - Windows compatibility
+   - Symlink handling
 
 ## Success Criteria
 
