@@ -1,64 +1,54 @@
 # byDefault
 
-[![CI](https://github.com/BernCarney/bydefault/actions/workflows/ci.yml/badge.svg)](https://github.com/BernCarney/bydefault/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/BernCarney/bydefault/graph/badge.svg?token=M0BNKJLBHC)](https://codecov.io/gh/BernCarney/bydefault)
+[![CI](https://github.com/username/bydefault/actions/workflows/ci.yml/badge.svg)](https://github.com/username/bydefault/actions)
+[![codecov](https://codecov.io/gh/username/bydefault/branch/main/graph/badge.svg)](https://codecov.io/gh/username/bydefault)
 ![Python](https://img.shields.io/badge/python-≥3.11-blue)
 
 CLI tools for Splunk 9.2.2 TA development and maintenance.
 
 ## Features
 
-Currently Implemented:
+Currently Implementing:
 
-- **File Detection**
-  - Find and validate Splunk TA directories
-  - Locate configuration files in local/default directories
-  - Match local configurations with default counterparts
-  - Support for multiple working contexts:
-    - Inside a TA directory
-    - Inside a directory containing multiple TAs
-    - Inside a git repository with TAs
-  - Metadata file handling (local.meta, default.meta)
-
-- **Configuration Processing**
-  - Parse .conf files into structured format
-  - Preserve file structure and comments
-  - Maintain line numbers and positioning
-  - Handle stanza organization
-  - Support automatic setting placement
-  - Handle multi-line values with continuations
-  - Preserve indentation and formatting
+- **P1: Basic CLI Structure**
+  - Command-line interface framework
+  - Help text and documentation
+  - Output formatting templates
+  - Error message formatting
+  - Verbosity controls
 
 Coming Soon:
 
-- **Configuration Management**
-  - Merge local configurations into default configurations
-  - Support common Splunk configuration files (props.conf, transforms.conf, etc.)
-  - Handle metadata merging (local.meta to default.meta)
-  - Implement hybrid sorting and organization
+- **P2: Basic Validation**
+  - Core validation rules
+  - Validation command structure
+  - Validation reporting
+  - Error handling
 
-- **Version Management**
-  - Update version numbers across multiple TAs
-  - Automatic version detection and validation
+- **P3: File Detection**
+  - TA directory validation
+  - Change detection and reporting
+  - Local/default file comparison
+  - Status display system
 
-- **Configuration File Management**
-  - Parse and validate Splunk .conf files
-  - Handle continuation lines and comments
-  - Maintain file structure integrity
-  - **Coming Soon**: Intelligent stanza sorting
+- **P4: Configuration Sorting**
+  - Stanza sorting by type and priority
+  - Setting organization within stanzas
+  - Structure and comment preservation
+  - Format maintenance
 
-- **File Operations**
-  - Merge local configurations into default
-  - Preserve comments and formatting
-  - Support multiple TA directories
-  - Validate file structure
+- **P5: Configuration Merging**
+  - Local to default file merging
+  - Conflict detection and resolution
+  - Format and structure preservation
+  - Backup mechanisms
 
 ## References
 
 - **Project Links**
-  - [byDefault Repository](https://github.com/your-org/bydefault)
-  - [CI Status](https://github.com/your-org/bydefault/actions/workflows/ci.yml)
-  - [Code Coverage](https://codecov.io/gh/your-org/bydefault)
+  - [byDefault Repository](https://github.com/username/bydefault)
+  - [CI Status](https://github.com/username/bydefault/actions)
+  - [Code Coverage](https://codecov.io/gh/username/bydefault)
 
 - **Documentation**
   - [UV Package Manager](https://docs.astral.sh/uv/)
@@ -106,59 +96,17 @@ Choose one of the following installation methods:
 
 2. The installation scripts automatically add UV to your PATH. Verify the installation:
 
-```bash
-uv --version
-```
-
-For additional setup options, including shell completion for `uv` and `uvx` commands and uninstallation instructions, please refer to the [UV Installation Guide](https://docs.astral.sh/uv/getting-started/installation/).
+    ```bash
+    uv --version
+    ```
 
 ### Installing byDefault
 
-Install byDefault as a system tool:
-
-```bash
-uv tool install "git+https://github.com/your-org/bydefault.git"
-```
-
-This makes the `bydefault` command available directly in your PATH.
-
-### Upgrading
-
-#### Upgrading UV
-
-```bash
-uv self update
-```
-
-#### Upgrading byDefault
-
-```bash
-uv tool upgrade bydefault
-```
-
-UV remembers the installation source, so you don't need to specify the repository URL again when upgrading.
+TODO: Update with actual installation instructions once package is published
 
 ## Usage
 
-```bash
-# Merge configurations
-bydefault merge [TA_NAME]
-
-# Update versions
-bydefault version <VERSION>
-```
-
-## Supported Configuration Files
-
-- props.conf
-- transforms.conf
-- inputs.conf
-- app.conf
-- eventtypes.conf
-- tags.conf
-- fields.conf
-- macros.conf
-- web.conf
+TODO: Update with actual command examples once implemented
 
 ## Development
 
@@ -174,8 +122,6 @@ bydefault version <VERSION>
     ```bash
     uv venv
     source .venv/bin/activate  # On Unix/macOS
-    # or
-    .venv\Scripts\activate  # On Windows
     ```
 
 3. Install development dependencies:
@@ -202,13 +148,31 @@ bydefault version <VERSION>
     ruff format .
     ```
 
-## Security
+## Project Structure
 
-This tool is designed to work in environments containing sensitive information. Please follow these security guidelines:
+```bash
+bydefault/
+├── src/
+│   └── bydefault/
+│       ├── __init__.py
+│       ├── cli.py              # Main CLI entry point
+│       ├── commands/           # Command implementations
+│       ├── core/              # Core business logic
+│       ├── models/            # Data models
+│       └── utils/             # Shared utilities
+├── tests/
+│   ├── conftest.py
+│   ├── test_commands/
+│   ├── test_core/
+│   ├── test_models/
+│   └── test_utils/
+└── [core config files]
+```
+
+## Security
 
 - Keep your Python environment up to date
 - Review all dependencies before installation
-- Do not store sensitive information in configuration files
 - Use appropriate access controls for any generated files
 - Back up configurations before performing merges
 
@@ -218,10 +182,6 @@ Proprietary - All rights reserved
 
 ## Development Status
 
-Currently implementing:
+Currently implementing Phase 1: Basic CLI Structure
 
-- Stanza sorting functionality
-- Enhanced configuration file handling
-- Improved test coverage
-
-See [TODO.md](TODO.md) for detailed task tracking.
+Visit the [Project Board](https://github.com/username/bydefault/projects/1) for detailed task tracking.
