@@ -22,7 +22,7 @@ jobs:
       - name: Install UV
         uses: astral-sh/setup-uv@v3
         with:
-          version: "0.4.30"
+          version: "0.5.1"
           enable-cache: true
           cache-dependency-glob: "uv.lock"
 
@@ -59,7 +59,7 @@ jobs:
       - name: Install UV
         uses: astral-sh/setup-uv@v3
         with:
-          version: "0.4.30"
+          version: "0.5.1"
           enable-cache: true
           cache-dependency-glob: "uv.lock"
 
@@ -103,7 +103,7 @@ jobs:
       - name: Install UV
         uses: astral-sh/setup-uv@v3
         with:
-          version: "0.4.30"
+          version: "0.5.1"
           enable-cache: true
 
       - name: Set up Python

@@ -1,7 +1,7 @@
 # byDefault
 
-[![CI](https://github.com/username/bydefault/actions/workflows/ci.yml/badge.svg)](https://github.com/username/bydefault/actions)
-[![codecov](https://codecov.io/gh/username/bydefault/branch/main/graph/badge.svg)](https://codecov.io/gh/username/bydefault)
+[![CI](https://github.com/BernCarney/bydefault/actions/workflows/ci.yml/badge.svg)](https://github.com/BernCarney/bydefault/actions)
+[![codecov](https://codecov.io/gh/BernCarney/bydefault/branch/main/graph/badge.svg)](https://codecov.io/gh/BernCarney/bydefault)
 ![Python](https://img.shields.io/badge/python-≥3.11-blue)
 
 CLI tools for Splunk 9.2.2 TA development and maintenance.
@@ -46,9 +46,9 @@ Coming Soon:
 ## References
 
 - **Project Links**
-  - [byDefault Repository](https://github.com/username/bydefault)
-  - [CI Status](https://github.com/username/bydefault/actions)
-  - [Code Coverage](https://codecov.io/gh/username/bydefault)
+  - [byDefault Repository](https://github.com/BernCarney/bydefault)
+  - [CI Status](https://github.com/BernCarney/bydefault/actions)
+  - [Code Coverage](https://codecov.io/gh/BernCarney/bydefault)
 
 - **Documentation**
   - [UV Package Manager](https://docs.astral.sh/uv/)
@@ -102,11 +102,79 @@ Choose one of the following installation methods:
 
 ### Installing byDefault
 
-TODO: Update with actual installation instructions once package is published
+1. Install from GitHub Release (Recommended):
 
-## Usage
+    ```bash
+      # Install from wheel file
+      uv tool install https://github.com/BernCarney/bydefault/releases/download/v0.1.0/bydefault-0.1.0-py3-none-any.whl
 
-TODO: Update with actual command examples once implemented
+      # Or latest release
+      uv tool install git+https://github.com/BernCarney/bydefault.git@v0.1.0
+
+      # Or latest from main branch
+      uv tool install git+https://github.com/BernCarney/bydefault.git
+
+      # Or build from source
+      uv tool install https://github.com/BernCarney/bydefault/releases/download/v0.1.0/bydefault-0.1.0.tar.gz
+    ```
+
+2. If you receive an error when installing byDefault saying you don't have the required python version, you can install the correct version of python using the following command:
+
+    ```bash
+    uv python install 3.11
+    ```
+
+3. Make sure UV's tool directory is added to your path:
+
+    ```bash
+    uv tool update-shell
+    ```
+
+4. Verify installation:
+
+   ```bash
+    # After restarting your shell
+    bydefault --version
+    bydefault, version 0.1.0
+   ```
+
+### Usage
+
+Detect configuration changes:
+
+  ```bash
+    $ bydefault scan
+    Changes detected in: my_custom_ta
+      Modified files:
+        local/props.conf
+        local/transforms.conf
+  ```
+
+Sort configuration files:
+
+  ```bash
+    $ bydefault sort default/props.conf
+    Sorting: default/props.conf
+      ✓ Stanzas reordered: 5
+      ✓ Settings sorted: 23
+  ```
+
+Merge local changes to default:
+
+  ```bash
+    $ bydefault merge
+    Merging changes in: my_custom_ta
+      ✓ props.conf: 2 stanzas merged
+      ✓ transforms.conf: 1 stanza merged
+  ```
+
+Update TA versions:
+
+  ```bash
+    $ bydefault bumpver --minor
+    Updating versions:
+      my_custom_ta: 1.2.0 -> 1.3.0
+  ```
 
 ## Development
 
@@ -184,4 +252,4 @@ Proprietary - All rights reserved
 
 Currently implementing Phase 1: Basic CLI Structure
 
-Visit the [Project Board](https://github.com/username/bydefault/projects/1) for detailed task tracking.
+Visit the [Project Board](https://github.com/BernCarney/bydefault/projects/1) for detailed task tracking.
