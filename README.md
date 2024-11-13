@@ -252,4 +252,4 @@ GNU General Public License v3.0 or later
 
 Currently implementing Phase 1: Basic CLI Structure
 
-Visit the [Project Board](https://github.com/BernCarney/bydefault/projects/1) for detailed task tracking.
+Visit the [Project Board](https://github.com/users/BernCarney/projects/1/views/1) for detailed task tracking.
