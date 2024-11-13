@@ -1,22 +1,68 @@
 """Tests for output formatting utilities."""
 
-from rich.console import Console
-from rich.theme import Theme
+import rich_click as click
+from click.testing import CliRunner
 
-from bydefault.utils.output import create_console, format_error
+from bydefault.utils.output import (
+    CHALKY,
+    CORAL,
+    CYAN,
+    IVORY,
+    MALIBU,
+    SAGE,
+    STONE,
+    format_error,
+)
 
 
-def test_create_console():
-    """Test console creation with proper theme."""
-    console = create_console()
-    assert isinstance(console, Console)
-    assert isinstance(console.theme, Theme)
+def test_rich_click_styling():
+    """Test rich-click styling configuration."""
+    # Basic configuration
+    assert click.rich_click.USE_RICH_MARKUP is True
+    assert click.rich_click.USE_MARKDOWN is True
 
-    # Verify required theme styles are present
-    assert "info" in console.theme.styles
-    assert "warning" in console.theme.styles
-    assert "error" in console.theme.styles
-    assert "success" in console.theme.styles
+    # Command and options styling
+    assert click.rich_click.STYLE_COMMAND == f"bold {MALIBU}"
+    assert click.rich_click.STYLE_OPTION == f"bold {CYAN}"
+    assert click.rich_click.STYLE_SWITCH == f"bold {SAGE}"
+    assert click.rich_click.STYLE_METAVAR == CHALKY
+    assert click.rich_click.STYLE_METAVAR_SEPARATOR == STONE
+
+    # Help text styling
+    assert click.rich_click.STYLE_HELPTEXT == IVORY
+    assert click.rich_click.STYLE_HEADER_TEXT == f"bold {IVORY}"
+
+    # Error styling
+    assert click.rich_click.STYLE_ERRORS_MESSAGE == f"bold {CORAL}"
+    assert click.rich_click.STYLE_ERRORS_SUGGESTION == STONE
+    assert click.rich_click.STYLE_ERRORS_CMD == MALIBU
+
+
+def test_styled_output(cli_runner: CliRunner):
+    """Test that styled output appears in CLI."""
+    from bydefault.cli import cli
+
+    # Test help output contains styled elements
+    result = cli_runner.invoke(cli, ["--help"])
+    assert result.exit_code == 0
+
+    # Help text should contain styled elements
+    assert "Options" in result.output  # Header should be bold ivory
+    assert "--help" in result.output  # Option should be bold cyan
+    assert "--version" in result.output  # Option should be bold cyan
+
+
+def test_styled_error_output(cli_runner: CliRunner):
+    """Test that error output is properly styled."""
+    from bydefault.cli import cli
+
+    # Test invalid command
+    result = cli_runner.invoke(cli, ["invalid"])
+    assert result.exit_code != 0
+
+    # Error message should be styled
+    assert "Error" in result.output  # Should be bold coral
+    assert "invalid" in result.output  # Command should be light blue
 
 
 def test_format_error_basic():
@@ -32,17 +78,3 @@ def test_format_error_with_context():
     context = "Check the path and try again"
     formatted = format_error(message, context)
     assert formatted == "Error: File not found\n  Check the path and try again"
-
-
-def test_theme_colors():
-    """Test theme color configuration."""
-    console = create_console()
-    theme = console.theme
-
-    assert theme.styles["info"].color == "cyan"
-    assert theme.styles["warning"].color == "yellow"
-    assert theme.styles["error"].color == "red"
-    assert theme.styles["success"].color == "green"
-
-    # Verify error style includes bold
-    assert theme.styles["error"].bold is True

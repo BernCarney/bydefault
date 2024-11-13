@@ -2,7 +2,8 @@
 
 import pytest
 from click.testing import CliRunner
-from rich.console import Console
+
+from bydefault import __prog_name__, __version__
 
 
 @pytest.fixture
@@ -17,7 +18,7 @@ def test_cli_version(cli_runner: CliRunner):
 
     result = cli_runner.invoke(cli, ["--version"])
     assert result.exit_code == 0
-    assert "bydefault, version" in result.output
+    assert f"{__prog_name__}, version {__version__}" in result.output.strip()
 
 
 def test_cli_help(cli_runner: CliRunner):
@@ -27,23 +28,18 @@ def test_cli_help(cli_runner: CliRunner):
     result = cli_runner.invoke(cli, ["--help"])
     assert result.exit_code == 0
     assert "under active development" in result.output
-    assert "planned but not yet implemented" in result.output
-
-
-def test_cli_verbose(cli_runner: CliRunner, mock_console: Console):
-    """Test verbose flag enables additional output."""
-    from bydefault.cli import cli
-
-    result = cli_runner.invoke(cli, ["--verbose"])
-    assert result.exit_code == 0
-    assert "Verbose output enabled" in result.output
+    assert "CLI tools for Splunk TA development" in result.output
 
 
 def test_cli_no_command(cli_runner: CliRunner):
-    """Test root command shows development status."""
+    """Test root command shows help text."""
     from bydefault.cli import cli
 
     result = cli_runner.invoke(cli)
     assert result.exit_code == 0
-    assert "Development Status" in result.output
-    assert "under development" in result.output
+    # Verify key elements of default output
+    assert "Usage:" in result.output
+    assert "CLI tools for Splunk TA development" in result.output
+    assert "under active development" in result.output
+    assert "--help" in result.output
+    assert "--version" in result.output

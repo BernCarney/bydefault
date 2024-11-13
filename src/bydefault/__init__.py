@@ -1,3 +1,7 @@
-"""byDefault - CLI tools for Splunk TA development and maintenance."""
+"""byDefault - CLI tools for Splunk TA development and maintenance.
+
+Package metadata used for CLI identification and version tracking.
+"""
 
 __version__ = "0.1.0"
+__prog_name__ = "byDefault"

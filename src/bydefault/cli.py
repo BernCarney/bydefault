@@ -1,33 +1,21 @@
 """Command-line interface for byDefault."""
 
-import click
-from rich.panel import Panel
-from rich.text import Text
+import rich_click as click
 
-from bydefault.utils.output import create_console
-
-console = create_console()
+from bydefault import __prog_name__, __version__
 
 
 @click.group()
-@click.option(
-    "--verbose",
-    is_flag=True,
-    help="Enable detailed output",
-)
-@click.option(
-    "--dry-run",
-    is_flag=True,
-    help="Show what would be done without making changes",
-)
-@click.version_option()
+@click.version_option(version=__version__, prog_name=__prog_name__)
 @click.pass_context
-def cli(ctx: click.Context, verbose: bool, dry_run: bool) -> None:
+def cli(ctx: click.Context) -> None:
     """CLI tools for Splunk TA development and maintenance.
 
-    Note: This tool is under active development. The following commands are planned
-    but not yet implemented:
+    \b
+    A collection of tools for developing and maintaining Splunk Technology Add-ons (TAs).
+    Currently under active development with the following planned commands:
 
+    \b
     - scan:     Detect and report configuration changes
     - sort:     Sort configuration files maintaining structure
     - merge:    Merge local configurations into default
@@ -37,16 +25,6 @@ def cli(ctx: click.Context, verbose: bool, dry_run: bool) -> None:
     if ctx.obj is None:
         ctx.obj = {}
 
-    ctx.obj["verbose"] = verbose
-    ctx.obj["dry_run"] = dry_run
-    ctx.obj["console"] = console
 
-    if verbose:
-        console.print("[bold blue]Verbose output enabled[/]")
-
-    # Show implementation status on root command
-    if ctx.invoked_subcommand is None:
-        status = Text(
-            "\nℹ️  All commands are currently under development.", style="bold yellow"
-        )
-        console.print(Panel(status, title="Development Status"))
+if __name__ == "__main__":
+    cli()

@@ -104,42 +104,86 @@ $ git push origin feat/new-dashboard
 2. Command Structure:
 
    ```bash
+   # Root command help
+   $ bydefault --help
+   Usage: bydefault [OPTIONS] COMMAND [ARGS]...
 
-    $ bydefault --help
-    Usage: bydefault [OPTIONS] COMMAND [ARGS]...
+   CLI tools for Splunk TA development and maintenance.
 
-    CLI tools for Splunk TA development and maintenance.
+   Options:
+     --version  Show version information
+     --help     Show this message and exit
 
-    Options:
-    --verbose    Enable detailed output
-    --dry-run    Show what would be done without making changes
-    --version    Show version information
-    --help       Show this message and exit
+   Commands:
+     scan      Detect and report configuration changes
+     sort      Sort configuration files maintaining structure
+     merge     Merge local configurations into default
+     validate  Verify configuration structure and syntax
+     bumpver   Update version numbers across TAs
 
-    Commands:
-    scan      Detect and report configuration changes
-        --recursive    Scan subdirectories for TAs
-        --show-diff    Show detailed changes
-        --include-meta Include metadata file changes
+   # Command-specific help examples
+   $ bydefault scan --help
+   Usage: bydefault scan [OPTIONS]
 
-    sort      Sort configuration files maintaining structure
-        --backup      Create backup before sorting
-        --verify      Verify file structure after sort
+   Detect and report configuration changes.
 
-    merge     Merge local configurations into default
-        --conflict    Specify conflict resolution strategy
-        --backup      Create backup before merging
+   Options:
+     --verbose       Show detailed output
+     --dry-run      Show what would be done without making changes
+     --recursive    Scan subdirectories for TAs
+     --show-diff    Show detailed changes
+     --include-meta Include metadata file changes
+     --help         Show this message and exit
 
-    validate  Verify configuration structure and syntax
-        --strict      Enable strict validation rules
-        --report      Generate validation report
+   $ bydefault sort --help
+   Usage: bydefault sort [OPTIONS] FILE
 
-    bumpver   Update version numbers across TAs
-        --major       Increment major version (X.0.0)
-        --minor       Increment minor version (0.X.0)
-        --patch       Increment patch version (0.0.X)
-        --set VERSION Set specific version (X.Y.Z)
+   Sort configuration files maintaining structure.
 
+   Options:
+     --verbose    Show detailed output
+     --dry-run    Show what would be done without making changes
+     --backup     Create backup before sorting
+     --verify     Verify file structure after sort
+     --help       Show this message and exit
+
+   $ bydefault merge --help
+   Usage: bydefault merge [OPTIONS] TA_PATH
+
+   Merge local configurations into default directory.
+
+   Options:
+     --verbose    Show detailed output
+     --dry-run    Show what would be done without making changes
+     --backup     Create backup before merging
+     --conflict   Specify conflict resolution strategy
+     --help       Show this message and exit
+
+   $ bydefault validate --help
+   Usage: bydefault validate [OPTIONS] [FILES]...
+
+   Verify configuration structure and syntax.
+
+   Options:
+     --verbose    Show detailed output
+     --dry-run    Show what would be done without making changes
+     --strict     Enable strict validation rules
+     --report     Generate validation report
+     --help       Show this message and exit
+
+   $ bydefault bumpver --help
+   Usage: bydefault bumpver [OPTIONS] [TA_PATHS]...
+
+   Update version numbers across TAs.
+
+   Options:
+     --verbose    Show detailed output
+     --dry-run    Show what would be done without making changes
+     --major      Increment major version (X.0.0)
+     --minor      Increment minor version (0.X.0)
+     --patch      Increment patch version (0.0.X)
+     --set VERSION Set specific version (X.Y.Z)
+     --help       Show this message and exit
    ```
 
 ### Technical Requirements
@@ -231,6 +275,13 @@ $ git push origin feat/new-dashboard
        - Includes file handling utilities
        - Built-in help text generation
        - Type validation and conversion
+
+     - rich-click >= 1.8.3 (CLI formatting)
+       - [Documentation](https://github.com/ewels/rich-click)
+       - Enhanced Click help formatting
+       - Consistent styling across commands
+       - Built-in Rich integration
+       - Drop-in Click wrapper
 
      - rich >= 13.9.4 (Terminal formatting)
        - [Documentation](https://rich.readthedocs.io/)
@@ -1073,7 +1124,8 @@ $ git push origin feat/new-dashboard
 **Core Implementation:**
 
 - Command-line interface framework
-  - Global options setup (--verbose, --dry-run, --version)
+  - Global options setup (--version, --help)
+  - Command-specific options setup (--verbose, --dry-run)
   - Help text system
   - Output formatting templates
   - Error message system
@@ -1086,14 +1138,14 @@ $ git push origin feat/new-dashboard
 
 1. CLI Framework
    - Root command returns proper help text
-   - Global flags work as expected (--verbose, --dry-run)
+   - Global flags work as expected (--version, --help)
+   - Command-specific flags work as expected (--verbose, --dry-run)  
    - Version information is displayed correctly
    - All help text clearly indicates which commands are not yet implemented
 
 2. Output System
    - Consistent formatting across all messages
    - Error messages follow defined template
-   - Verbose output works with global flag
    - Color schemes work in supported terminals
 
 3. Testing
