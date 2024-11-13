@@ -246,7 +246,7 @@ bydefault/
 
 ## License
 
-Proprietary - All rights reserved
+GNU General Public License v3.0 or later
 
 ## Development Status
 
