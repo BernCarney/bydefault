@@ -20,11 +20,6 @@ dev = [
 [project.scripts]
 bydefault = "bydefault.cli:cli"
 
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-python_files = ["test_*.py"]
-addopts = "-ra -q --cov=bydefault"
-
 [tool.ruff]
 line-length = 88
 target-version = "py311"

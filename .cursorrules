@@ -21,7 +21,7 @@
         "  - First line: type: brief description",
         "  - Blank line",
         "  - Bullet points starting with - for detailed changes",
-        "  - Optional context or rationale after bullet points",
+        "  - Optional context or rationale after bullet points only if overly complex and needed",
         "Include comments above complex commands explaining their purpose",
         "For destructive operations, include a warning comment above the command"
       ]
@@ -29,8 +29,20 @@
     {
       "context": "Markdown and Documentation",
       "instructions": [
-        "Ensure README.md is in GitHub flavored markdown and is structured to avoid breaking Cursor's functionality, especially with codeblocks.",
-        "Include clear usage instructions and examples for the CLI tools.",
+        "For README.md and other markdown files:",
+        "  - Use proper heading hierarchy (# for title, ## for sections)",
+        "  - For code blocks:",
+        "    - Indent block markers with same level as containing section",
+        "    - Indent code content one additional level inside block",
+        "    - Use language identifiers (```bash, ```python)",
+        "    - Keep block markers aligned with section text",
+        "    - Add empty line before and after blocks",
+        "  - For command examples:",
+        "    - Use $ prefix for shell commands",
+        "    - Include expected output indented one level",
+        "    - Group related commands together",
+        "    - Add descriptive text before command blocks",
+        "Include clear usage instructions and examples for CLI tools.",
         "Document all major classes and functions using docstrings."
       ]
     },

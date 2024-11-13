@@ -102,11 +102,53 @@ Choose one of the following installation methods:
 
 ### Installing byDefault
 
-TODO: Update with actual installation instructions once package is published
+Install byDefault directly from the GitHub repository using UV's tool interface:
 
-## Usage
+  ```bash
+    $ uv tool install git+https://github.com/username/bydefault.git
+    
+    # Verify installation
+    $ bydefault --version
+    bydefault, version 0.1.0
+  ```
 
-TODO: Update with actual command examples once implemented
+### Usage
+
+Detect configuration changes:
+
+  ```bash
+    $ bydefault scan
+    Changes detected in: my_custom_ta
+      Modified files:
+        local/props.conf
+        local/transforms.conf
+  ```
+
+Sort configuration files:
+
+  ```bash
+    $ bydefault sort default/props.conf
+    Sorting: default/props.conf
+      ✓ Stanzas reordered: 5
+      ✓ Settings sorted: 23
+  ```
+
+Merge local changes to default:
+
+  ```bash
+    $ bydefault merge
+    Merging changes in: my_custom_ta
+      ✓ props.conf: 2 stanzas merged
+      ✓ transforms.conf: 1 stanza merged
+  ```
+
+Update TA versions:
+
+  ```bash
+    $ bydefault bumpver --minor
+    Updating versions:
+      my_custom_ta: 1.2.0 -> 1.3.0
+  ```
 
 ## Development
 

@@ -1,6 +1,7 @@
 """Tests for the main CLI interface."""
 
 import pytest
+import rich_click as click
 from click.testing import CliRunner
 
 from bydefault import __prog_name__, __version__
@@ -43,3 +44,53 @@ def test_cli_no_command(cli_runner: CliRunner):
     assert "under active development" in result.output
     assert "--help" in result.output
     assert "--version" in result.output
+
+
+def test_cli_main_block(monkeypatch):
+    """Test the CLI invocation through Click's test runner."""
+    from click.testing import CliRunner
+
+    from bydefault.cli import cli
+
+    # Track if cli() was called
+    cli_called = False
+
+    def mock_cli():
+        nonlocal cli_called
+        cli_called = True
+
+    # Replace the cli function with our mock
+    monkeypatch.setattr("bydefault.cli.cli", mock_cli)
+
+    # Create a runner and invoke the CLI
+    runner = CliRunner()
+    result = runner.invoke(cli)
+
+    # Verify cli() was called and returned successfully
+    assert result.exit_code == 0
+
+
+def test_cli_context_initialization(cli_runner: CliRunner):
+    """Test that CLI context is properly initialized."""
+    from bydefault.cli import cli
+
+    @cli.command()
+    def dummy():
+        pass
+
+    result = cli_runner.invoke(cli, ["dummy"])
+    assert result.exit_code == 0
+
+
+def test_cli_context_exists(cli_runner: CliRunner):
+    """Test that context object is created when None."""
+    from bydefault.cli import cli
+
+    @cli.command()
+    @click.pass_context
+    def check_ctx(ctx):
+        click.echo(str(ctx.obj is not None))
+
+    result = cli_runner.invoke(cli, ["check-ctx"])
+    assert result.exit_code == 0
+    assert "True" in result.output

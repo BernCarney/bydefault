@@ -12,7 +12,10 @@ def cli(ctx: click.Context) -> None:
     """CLI tools for Splunk TA development and maintenance.
 
     \b
-    A collection of tools for developing and maintaining Splunk Technology Add-ons (TAs).
+    A collection of tools for developing and maintaining Splunk Technology
+    Add-ons (TAs).
+
+    \b
     Currently under active development with the following planned commands:
 
     \b
@@ -26,5 +29,5 @@ def cli(ctx: click.Context) -> None:
         ctx.obj = {}
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     cli()
