@@ -1,3 +1,7 @@
-"""Command implementations for byDefault."""
+"""Command implementations for byDefault.
 
-__all__ = []  # Commands will be added in their respective phases
+Available commands:
+    - validate: Verify Splunk TA configuration structure and syntax
+"""
+
+__all__ = ["validator"]  # Add validator command to exports
