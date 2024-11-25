@@ -8,7 +8,16 @@ from rich.theme import Theme
 
 from bydefault import __prog_name__, __version__
 from bydefault.commands.validator import validate_file
-from bydefault.utils.output import CHALKY, CORAL, CYAN, IVORY, MALIBU, SAGE
+from bydefault.utils.output import (
+    CHALKY,
+    CORAL,
+    CYAN,
+    IVORY,
+    MALIBU,
+    SAGE,
+    print_step_result,
+    print_validation_error,
+)
 
 # Use existing color scheme from output.py
 custom_theme = Theme(
@@ -33,7 +42,7 @@ def cli(ctx: click.Context) -> None:
 
     \b
     A collection of tools for developing and maintaining Splunk Technology
-    Add-ons (TAs).
+    Add-ons (TAs). Implemented commands can be found in the help text below.
 
     \b
     Currently under active development with the following planned commands:
@@ -44,39 +53,47 @@ def cli(ctx: click.Context) -> None:
     - merge:    Merge local configurations into default
     - bumpver:  Update version numbers across TAs
     """
-    if ctx.obj is None:
-        ctx.obj = {}
+    # Initialize context object with default values
+    ctx.ensure_object(dict)
+    ctx.obj.update(
+        {
+            "verbose": False,
+            "console": console,
+        }
+    )
 
 
 @cli.command()
 @click.option("--verbose", is_flag=True, help="Show detailed output")
-@click.option(
-    "--dry-run", is_flag=True, help="Show what would be done without making changes"
-)
-@click.option("--report", is_flag=True, help="Generate validation report")
 @click.argument("files", nargs=-1, type=click.Path(exists=True, path_type=Path))
-def validate(
-    verbose: bool, dry_run: bool, report: bool, files: tuple[Path, ...]
-) -> None:
+@click.pass_context
+def validate(ctx: click.Context, verbose: bool, files: tuple[Path, ...]) -> None:
     """Verify configuration structure and syntax."""
-    for i, file_path in enumerate(files):
-        # Add newline before file if not first file and previous had errors
-        if i > 0 and not validate_file(files[i - 1]).is_valid:
-            console.print()
+    ctx.obj["verbose"] = verbose
 
-        result = validate_file(file_path)
-        if result.is_valid:
-            console.print(f"[path]{file_path}[/path] [success]✓[/success]")
-        else:
-            console.print(f"[path]{file_path}[/path] [error]✗[/error]")
-            for issue in result.issues:
-                console.print(
-                    f"  [bullet]•[/bullet] Line [line_number]{issue.line_number}[/line_number]: "
-                    f"[message]{issue.message}[/message]"
-                )
+    previous_had_error = False
+    for file_path in files:
+        # Add newline if previous file had errors
+        if previous_had_error:
+            ctx.obj["console"].print()
+
+        result = validate_file(
+            file_path, verbose=ctx.obj["verbose"], console=ctx.obj["console"]
+        )
+        previous_had_error = not result.is_valid
+
+        # Add non-verbose output
+        if not verbose:
+            ctx.obj["console"].print(f"[path]{file_path}[/path] ", end="")
+            print_step_result(ctx.obj["console"], result.is_valid)
+            if not result.is_valid:
+                for issue in result.issues:
+                    print_validation_error(
+                        ctx.obj["console"], issue.line_number, issue.message
+                    )
 
     # Add final newline
-    console.print()
+    ctx.obj["console"].print()
 
 
 if __name__ == "__main__":  # pragma: no cover

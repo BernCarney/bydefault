@@ -36,7 +36,16 @@ default/inputs.conf ✗
 
 #### Verbose Output (--verbose)
 
-Shows additional validation details:
+Shows detailed progress of validation steps:
+
+- File extension check
+- UTF-8 encoding verification
+- File reading progress
+- Syntax validation
+- Stanza counting
+- Final validation result
+
+Example:
 
 ```bash
 $ bydefault validate --verbose props.conf
@@ -47,7 +56,7 @@ Validating props.conf...
 ✓ All syntax valid
 ```
 
-#### Report Generation (--report)
+#### Report Generation (Coming Soon)
 
 Generate a detailed validation report:
 
@@ -62,18 +71,7 @@ limits.conf      *FAIL     15        67      2
 Total Files: 3   Pass: 2   Fail: 1
 ```
 
-#### Dry Run (--dry-run)
-
-Preview validation without making changes:
-
-```bash
-$ bydefault validate --dry-run props.conf
-Would validate: props.conf
-- Check file extension (.conf)
-- Verify UTF-8 encoding
-- Validate syntax and structure
-- Check for duplicates
-```
+Note: This feature is planned for future implementation.
 
 ## Programmatic Usage
 
@@ -139,6 +137,8 @@ The validator checks for:
    - No duplicate stanzas
    - No duplicate keys within stanzas
    - Valid section hierarchy
+   - Line count tracking
+   - Stanza count statistics
 
 ## Error Messages
 
@@ -157,4 +157,6 @@ Common error messages and their meaning:
 - The validator is non-destructive and never modifies files
 - Empty configuration files are considered valid
 - Comments and blank lines are ignored
-- Special Splunk sections (`[]`, `[*]`, `[default]`) are properly handled
+- Console output uses rich formatting for improved readability
+- Implementation follows modular design with separate validation steps
+- Validation functions accept console instance for consistent output formatting

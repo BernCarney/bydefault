@@ -1,6 +1,7 @@
 """Terminal output formatting utilities."""
 
 import rich_click as click
+from rich.console import Console
 
 # One Dark theme colors
 CHALKY = "#e5c07b"  # Light yellow
@@ -31,6 +32,37 @@ click.rich_click.STYLE_HEADER_TEXT = f"bold {IVORY}"  # Headers in bold light gr
 click.rich_click.STYLE_ERRORS_MESSAGE = f"bold {CORAL}"  # Errors in light red
 click.rich_click.STYLE_ERRORS_SUGGESTION = STONE  # Suggestions in gray
 click.rich_click.STYLE_ERRORS_CMD = MALIBU  # Error commands in light blue
+
+
+def print_step_result(console: Console, success: bool, end: str = "\n") -> None:
+    """Print a step result indicator.
+
+    Args:
+        console: Rich console instance for output
+        success: Whether the step succeeded
+        end: String appended after the output (default: newline)
+    """
+    symbol = "[success]✓[/success]" if success else "[error]✗[/error]"
+    console.print(symbol, end=end)
+
+
+def print_validation_error(
+    console: Console, line_number: int, message: str, indent: int = 2
+) -> None:
+    """Print a validation error message.
+
+    Args:
+        console: Rich console instance for output
+        line_number: Line number where error occurred
+        message: Error message to display
+        indent: Number of spaces to indent (default: 2)
+    """
+    console.print(
+        " "
+        * indent
+        + f"[bullet]•[/bullet] Line [line_number]{line_number}[/line_number]: "
+        f"[message]{message}[/message]"
+    )
 
 
 def format_error(message: str, context: str | None = None) -> str:
