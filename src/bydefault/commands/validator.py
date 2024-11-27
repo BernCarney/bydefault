@@ -2,12 +2,21 @@
 
 from configparser import ConfigParser
 from configparser import Error as ConfigParserError
+from enum import Enum
 from pathlib import Path
 
 from rich.console import Console
 
 from ..models.validation_results import IssueType, ValidationIssue, ValidationResult
 from ..utils.output import print_step_result, print_validation_error
+
+
+class ValidationType(Enum):
+    """Types of validation to perform."""
+
+    NONE = "none"  # Skip validation entirely
+    BASIC = "basic"  # Basic checks only (encoding, permissions)
+    FULL = "full"  # Full validation (syntax, structure, etc.)
 
 
 def _is_splunk_special_section(line: str) -> bool:
@@ -44,9 +53,35 @@ def _get_unique_section_name(line: str) -> str:
     return line.strip("[]")
 
 
+def _get_validation_type(file_path: Path) -> ValidationType:
+    """Determine validation type based on file extension.
+
+    Args:
+        file_path: Path to validate
+
+    Returns:
+        ValidationType indicating level of validation to perform
+    """
+    suffix = file_path.suffix
+    stem_suffix = Path(file_path.stem).suffix  # For double extensions like .conf.spec
+
+    # Full validation for .conf and .meta files
+    if suffix in [".conf", ".meta"]:
+        return ValidationType.FULL
+
+    # Basic validation for .conf.spec, dashboard, and data files
+    if stem_suffix == ".conf" and suffix == ".spec":  # .conf.spec files
+        return ValidationType.BASIC
+    if suffix in [".dashboard", ".lookup", ".csv", ".tsv"]:
+        return ValidationType.BASIC
+
+    # No validation for other files
+    return ValidationType.NONE
+
+
 def _validate_file_extension(
     file_path: Path, verbose: bool, console: Console
-) -> tuple[bool, list[ValidationIssue]]:
+) -> tuple[ValidationType, list[ValidationIssue]]:
     """Validate file extension.
 
     Args:
@@ -55,29 +90,29 @@ def _validate_file_extension(
         console: Console instance for output
 
     Returns:
-        Tuple of (is_valid, list of issues)
+        Tuple of (validation_type, list of issues)
     """
     if verbose:
         console.print("Checking file extension...", end=" ")
 
     issues = []
-    is_valid = file_path.suffix in [".conf", ".meta"]
+    validation_type = _get_validation_type(file_path)
 
-    if not is_valid:
+    if validation_type == ValidationType.NONE:
         if verbose:
-            print_step_result(console, False)
+            print_step_result(console, "warning")
         issues.append(
             ValidationIssue(
-                type=IssueType.STRUCTURE,
+                type=IssueType.WARNING,
                 line_number=0,
-                message="Invalid file extension - must be .conf or .meta",
+                message="Skipping validation - not a recognized Splunk file type",
                 context=str(file_path),
             )
         )
     elif verbose:
         print_step_result(console, True)
 
-    return is_valid, issues
+    return validation_type, issues
 
 
 def _validate_encoding(
@@ -205,12 +240,10 @@ def _validate_stanzas(
 def validate_file(file_path: Path, verbose: bool, console: Console) -> ValidationResult:
     """Validate a Splunk configuration file.
 
-    Performs multiple validation checks in sequence:
-    1. File extension (.conf or .meta)
-    2. UTF-8 encoding
-    3. Stanza syntax and structure
-    4. Duplicate detection
-    5. ConfigParser validation
+    Performs validation based on file type:
+    - .conf and .meta: Full validation (syntax, structure, etc.)
+    - .conf.spec, .dashboard, .lookup, .csv, .tsv: Basic validation (encoding)
+    - Other files: No validation (skipped with warning)
 
     Args:
         file_path: Path to the configuration file to validate
@@ -231,18 +264,20 @@ def validate_file(file_path: Path, verbose: bool, console: Console) -> Validatio
     if verbose:
         console.print(f"Validating {file_path}...")
 
-    # Check file extension
-    is_valid, extension_issues = _validate_file_extension(file_path, verbose, console)
-    if not is_valid:
-        if verbose:
-            console.print(f"[path]{file_path}[/path] ", end="")
-            print_step_result(console, False)
+    # Check file extension and determine validation type
+    validation_type, extension_issues = _validate_file_extension(
+        file_path, verbose, console
+    )
+    if validation_type == ValidationType.NONE:
         return ValidationResult(
-            file_path=file_path, is_valid=False, issues=extension_issues, stats=stats
+            file_path=file_path,
+            is_valid=True,  # Non-Splunk files are considered valid
+            issues=extension_issues,
+            stats=stats,
         )
     issues.extend(extension_issues)
 
-    # Check encoding
+    # Basic validation for all recognized file types
     is_valid, encoding_issues = _validate_encoding(file_path, verbose, console)
     if not is_valid:
         if verbose:
@@ -253,18 +288,24 @@ def validate_file(file_path: Path, verbose: bool, console: Console) -> Validatio
         )
     issues.extend(encoding_issues)
 
-    # Read file content
+    # Only proceed with full validation for .conf and .meta files
+    if validation_type != ValidationType.FULL:
+        return ValidationResult(
+            file_path=file_path,
+            is_valid=True,
+            issues=issues,
+            stats=stats,
+        )
+
+    # Full validation continues here
     content, file_stats = _read_file_content(file_path, verbose, console)
     stats.update(file_stats)
 
-    # Validate stanzas
     seen_sections, stanza_issues = _validate_stanzas(content, verbose, console)
     issues.extend(stanza_issues)
 
-    # Only proceed with ConfigParser if no syntax errors
     if not any(issue.type == IssueType.SYNTAX for issue in issues):
         try:
-            # Process content for special sections
             processed_content = []
             for line in content:
                 line = line.strip()
@@ -274,7 +315,6 @@ def validate_file(file_path: Path, verbose: bool, console: Console) -> Validatio
                 else:
                     processed_content.append(line)
 
-            # Try parsing with processed content
             parser.read_string("\n".join(processed_content))
             stats["stanzas"] = len(parser.sections())
             if verbose:

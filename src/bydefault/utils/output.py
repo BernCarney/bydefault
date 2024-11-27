@@ -4,14 +4,20 @@ import rich_click as click
 from rich.console import Console
 
 # One Dark theme colors
-CHALKY = "#e5c07b"  # Light yellow
-CORAL = "#e06c75"  # Light red
-CYAN = "#56b6c2"  # Cyan
-MALIBU = "#61afef"  # Light blue
-SAGE = "#98c379"  # Light green
-VIOLET = "#c678dd"  # Purple
-STONE = "#5c6370"  # Gray
-IVORY = "#abb2bf"  # Light gray
+CHALKY = "#E5C07B"  # Light yellow
+CORAL = "#E06C75"  # Light red
+CYAN = "#56B6C2"  # Cyan
+MALIBU = "#61AFEF"  # Light blue
+SAGE = "#98C379"  # Light green
+VIOLET = "#C678DD"  # Purple
+STONE = "#5C6370"  # Gray
+IVORY = "#ABB2BF"  # Light gray
+WHISKEY = "#D19A66"  # Light orange for warnings
+
+# Symbols for validation results
+SUCCESS_SYMBOL = "✓"
+ERROR_SYMBOL = "✗"
+WARNING_SYMBOL = "⚠"
 
 # Configure rich-click styling using One Dark colors
 click.rich_click.USE_RICH_MARKUP = True
@@ -34,16 +40,19 @@ click.rich_click.STYLE_ERRORS_SUGGESTION = STONE  # Suggestions in gray
 click.rich_click.STYLE_ERRORS_CMD = MALIBU  # Error commands in light blue
 
 
-def print_step_result(console: Console, success: bool, end: str = "\n") -> None:
-    """Print a step result indicator.
+def print_step_result(console: Console, result: bool | str) -> None:
+    """Print a step result with appropriate formatting.
 
     Args:
-        console: Rich console instance for output
-        success: Whether the step succeeded
-        end: String appended after the output (default: newline)
+        console: Rich Console instance for output
+        result: True for success, False for error, "warning" for warning
     """
-    symbol = "[success]✓[/success]" if success else "[error]✗[/error]"
-    console.print(symbol, end=end)
+    if result is True:
+        console.print(f"[success]{SUCCESS_SYMBOL}[/success]")
+    elif result is False:
+        console.print(f"[error]{ERROR_SYMBOL}[/error]")
+    elif result == "warning":
+        console.print(f"[warning]{WARNING_SYMBOL}[/warning]")
 
 
 def print_validation_error(

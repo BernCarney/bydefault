@@ -68,7 +68,20 @@ def test_validate_error_handling(runner, mock_validate_file, test_files):
 def test_validate_no_files(runner):
     """Test validate command with no files."""
     result = runner.invoke(cli, ["validate"])
-    assert result.exit_code == 0  # Should succeed as it will scan current directory
+    assert result.exit_code == 1  # Should fail with no files
+    assert "Error: No files specified" in result.output
+    assert "Example usage:" in result.output
+    assert "bydefault validate *.conf" in result.output
+
+
+def test_validate_help(runner):
+    """Test validate command help text."""
+    result = runner.invoke(cli, ["validate", "--help"])
+    assert result.exit_code == 0
+    assert "Verify configuration structure and syntax" in result.output
+    assert "Validates Splunk configuration files" in result.output
+    assert "Non-configuration files will be skipped" in result.output
+    assert "--verbose" in result.output
 
 
 def test_validate_nonexistent_file(runner):

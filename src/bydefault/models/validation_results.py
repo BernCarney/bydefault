@@ -14,6 +14,7 @@ class IssueType(Enum):
     STRUCTURE = "structure"  # Stanza/section structure issues
     DUPLICATE = "duplicate"  # Duplicate keys/stanzas
     PERMISSION = "permission"  # File permission issues
+    WARNING = "warning"  # Non-error validation issues
 
 
 @dataclass

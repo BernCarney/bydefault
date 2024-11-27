@@ -56,23 +56,6 @@ Validating props.conf...
 ✓ All syntax valid
 ```
 
-#### Report Generation (Coming Soon)
-
-Generate a detailed validation report:
-
-```bash
-$ bydefault validate --report *.conf
-File              Status   Stanzas   Lines   Errors
-─────────────────────────────────────────────────────
-props.conf        PASS     48        156     0
-transforms.conf   PASS     12        89      0
-limits.conf      *FAIL     15        67      2
-
-Total Files: 3   Pass: 2   Fail: 1
-```
-
-Note: This feature is planned for future implementation.
-
 ## Programmatic Usage
 
 The validate command can be used programmatically by other commands:

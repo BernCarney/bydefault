@@ -1,5 +1,6 @@
 """Tests for the validate command implementation."""
 
+from pathlib import Path
 from textwrap import dedent
 from unittest.mock import Mock
 
@@ -7,7 +8,9 @@ import pytest
 from rich.console import Console
 
 from bydefault.commands.validator import (
+    ValidationType,
     _get_unique_section_name,
+    _get_validation_type,
     _is_splunk_special_section,
     _read_file_content,
     _validate_encoding,
@@ -16,6 +19,11 @@ from bydefault.commands.validator import (
     validate_file,
 )
 from bydefault.models.validation_results import IssueType
+from bydefault.utils.output import (
+    ERROR_SYMBOL,
+    SUCCESS_SYMBOL,
+    WARNING_SYMBOL,
+)
 
 
 @pytest.fixture
@@ -110,16 +118,17 @@ def test_validate_file_extension(temp_conf_dir, mock_console):
     invalid_file.touch()
 
     # Test valid extension
-    is_valid, issues = _validate_file_extension(valid_file, True, mock_console)
-    assert is_valid
+    validation_type, issues = _validate_file_extension(valid_file, True, mock_console)
+    assert validation_type == ValidationType.FULL
     assert not issues
     mock_console.print.assert_called()
 
-    # Test invalid extension
-    is_valid, issues = _validate_file_extension(invalid_file, True, mock_console)
-    assert not is_valid
+    # Test non-Splunk extension
+    validation_type, issues = _validate_file_extension(invalid_file, True, mock_console)
+    assert validation_type == ValidationType.NONE
     assert len(issues) == 1
-    assert issues[0].type == IssueType.STRUCTURE
+    assert issues[0].type == IssueType.WARNING
+    assert "not a recognized Splunk file type" in issues[0].message
 
 
 def test_validate_encoding(temp_conf_dir, mock_console):
@@ -228,14 +237,15 @@ def test_validate_invalid_props_conf(invalid_props_conf, mock_console):
 
 
 def test_validate_invalid_extension(temp_conf_dir, mock_console):
-    """Test validation fails for invalid file extension."""
+    """Test validation behavior for non-.conf/.meta files."""
     invalid_file = temp_conf_dir / "props.txt"
     invalid_file.write_text("[test]\nkey=value")
 
     result = validate_file(invalid_file, verbose=False, console=mock_console)
-    assert not result.is_valid
+    assert result.is_valid  # Non-.conf/.meta files are now considered valid
     assert len(result.issues) == 1
-    assert result.issues[0].type == IssueType.STRUCTURE
+    assert result.issues[0].type == IssueType.WARNING
+    assert "Skipping validation" in result.issues[0].message
 
 
 def test_validate_empty_file(temp_conf_dir, mock_console):
@@ -299,3 +309,86 @@ def test_validate_non_utf8_file(temp_conf_dir, mock_console):
     assert not result.is_valid
     assert len(result.issues) == 1
     assert result.issues[0].type == IssueType.ENCODING
+
+
+def test_validate_mixed_files_output(temp_conf_dir, mock_console):
+    """Test output formatting for a mix of file types."""
+    # Create test files
+    valid_conf = temp_conf_dir / "valid.conf"
+    valid_conf.write_text("[test]\nkey=value")
+
+    invalid_conf = temp_conf_dir / "invalid.conf"
+    invalid_conf.write_text("[unclosed\nkey=value")
+
+    text_file = temp_conf_dir / "test.txt"
+    text_file.write_text("Some content")
+
+    # Test each file
+    # Valid .conf file
+    result = validate_file(valid_conf, verbose=True, console=mock_console)
+    assert result.is_valid
+    mock_console.print.assert_any_call(f"[success]{SUCCESS_SYMBOL}[/success]")
+
+    # Invalid .conf file
+    result = validate_file(invalid_conf, verbose=True, console=mock_console)
+    assert not result.is_valid
+    mock_console.print.assert_any_call(f"[error]{ERROR_SYMBOL}[/error]")
+
+    # Non-.conf file
+    result = validate_file(text_file, verbose=True, console=mock_console)
+    assert result.is_valid
+    mock_console.print.assert_any_call(f"[warning]{WARNING_SYMBOL}[/warning]")
+
+
+def test_validate_conf_spec_file(temp_conf_dir, mock_console):
+    """Test validation of .conf.spec files."""
+    spec_file = temp_conf_dir / "props.conf.spec"
+    spec_file.write_text("Some content")
+
+    result = validate_file(spec_file, verbose=True, console=mock_console)
+    assert result.is_valid  # Should pass basic validation
+    assert not result.issues  # No issues for valid file
+
+
+def test_validate_dashboard_file(temp_conf_dir, mock_console):
+    """Test validation of dashboard files."""
+    dashboard_file = temp_conf_dir / "test.dashboard"
+    dashboard_file.write_text("Some content")
+
+    result = validate_file(dashboard_file, verbose=True, console=mock_console)
+    assert result.is_valid  # Should pass basic validation
+    assert not result.issues  # No issues for valid file
+
+
+def test_validate_lookup_file(temp_conf_dir, mock_console):
+    """Test validation of lookup files."""
+    lookup_file = temp_conf_dir / "test.csv"
+    lookup_file.write_text("header1,header2\nvalue1,value2")
+
+    result = validate_file(lookup_file, verbose=True, console=mock_console)
+    assert result.is_valid  # Should pass basic validation
+    assert not result.issues  # No issues for valid file
+
+
+def test_validate_invalid_encoding_lookup(temp_conf_dir, mock_console):
+    """Test validation catches encoding issues in lookup files."""
+    lookup_file = temp_conf_dir / "test.csv"
+    with open(lookup_file, "wb") as f:
+        f.write(b"\xff\xfe invalid utf-8")
+
+    result = validate_file(lookup_file, verbose=True, console=mock_console)
+    assert not result.is_valid
+    assert len(result.issues) == 1
+    assert result.issues[0].type == IssueType.ENCODING
+
+
+def test_get_validation_type():
+    """Test validation type determination."""
+    assert _get_validation_type(Path("test.conf")) == ValidationType.FULL
+    assert _get_validation_type(Path("test.meta")) == ValidationType.FULL
+    assert _get_validation_type(Path("test.conf.spec")) == ValidationType.BASIC
+    assert _get_validation_type(Path("test.dashboard")) == ValidationType.BASIC
+    assert _get_validation_type(Path("test.csv")) == ValidationType.BASIC
+    assert _get_validation_type(Path("test.tsv")) == ValidationType.BASIC
+    assert _get_validation_type(Path("test.lookup")) == ValidationType.BASIC
+    assert _get_validation_type(Path("test.txt")) == ValidationType.NONE
