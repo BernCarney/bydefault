@@ -15,6 +15,7 @@ from bydefault.utils.output import (
     IVORY,
     MALIBU,
     SAGE,
+    VIOLET,
     WHISKEY,
     print_step_result,
     print_validation_error,
@@ -30,6 +31,7 @@ custom_theme = Theme(
         "bullet": CHALKY,  # Light yellow from output.py
         "message": IVORY,  # Light gray from output.py
         "line_number": CYAN,  # Cyan from output.py
+        "title": VIOLET,  # Purple from output.py
     }
 )
 
@@ -97,6 +99,14 @@ def validate(ctx: click.Context, verbose: bool, files: tuple[Path, ...]) -> None
 
     previous_had_error = False
     for file_path in files:
+        # Skip directories in output but still process files within them
+        if file_path.is_dir():
+            if verbose:
+                ctx.obj["console"].print(
+                    f"[title]Processing directory:[/title] [path]{file_path}[/path]"
+                )
+            continue
+
         # Add newline if previous file had errors
         if previous_had_error:
             ctx.obj["console"].print()
