@@ -6,6 +6,7 @@ import pytest
 from click.testing import CliRunner
 
 from bydefault.cli import cli
+from bydefault.commands.validator import ValidationType
 
 
 @pytest.fixture
@@ -98,10 +99,10 @@ def test_validate_console_output(runner, mock_validate_file, test_files):
     mock_validate_file.return_value.is_valid = True
     mock_validate_file.return_value.file_path = test_files[0]
     mock_validate_file.return_value.stats = {"lines": 10, "stanzas": 2}
+    mock_validate_file.return_value.issues = []
+    mock_validate_file.return_value.validation_type = ValidationType.FULL
+    mock_validate_file.return_value.suffix = ".conf"
 
     result = runner.invoke(cli, ["validate", "--verbose", str(test_files[0])])
     assert result.exit_code == 0
-    # Verify we get some output
-    assert result.output
-    # Verify newlines at start and end
-    assert result.output.startswith("\n") or result.output.endswith("\n")
+    assert mock_validate_file.called

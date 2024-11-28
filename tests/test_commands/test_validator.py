@@ -192,7 +192,6 @@ def test_validate_stanzas(mock_console):
     assert len(issues) == 2
     assert any(i.type == IssueType.DUPLICATE for i in issues)
     assert any(i.type == IssueType.SYNTAX for i in issues)
-    mock_console.print.assert_called()
 
 
 def test_validate_file_verbose(temp_conf_dir, mock_console):
@@ -392,3 +391,36 @@ def test_get_validation_type():
     assert _get_validation_type(Path("test.tsv")) == ValidationType.BASIC
     assert _get_validation_type(Path("test.lookup")) == ValidationType.BASIC
     assert _get_validation_type(Path("test.txt")) == ValidationType.NONE
+
+
+def test_validate_key_value_format(temp_conf_dir, mock_console):
+    """Test validation of key-value format within stanzas."""
+    # Test various key-value formats
+    content = dedent("""
+        [valid_stanza]
+        key1 = value1
+        key2=value2
+        key3 = value3 # with comment
+        key4 = multi
+              line
+              value
+        
+        [invalid_stanza]
+        invalid_line
+        key5 value5
+        =invalid_format
+        key6==value6
+    """).lstrip()
+
+    test_file = temp_conf_dir / "test.conf"
+    test_file.write_text(content)
+
+    result = validate_file(test_file, verbose=True, console=mock_console)
+    assert not result.is_valid
+    assert any(issue.type == IssueType.SYNTAX for issue in result.issues)
+
+    # Check for ConfigParser's actual error messages
+    error_messages = [issue.message.lower() for issue in result.issues]
+    assert any("'invalid_line" in msg for msg in error_messages)
+    assert any("'key5 value5" in msg for msg in error_messages)
+    assert any("'=invalid_format" in msg for msg in error_messages)

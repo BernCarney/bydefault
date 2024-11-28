@@ -115,7 +115,7 @@ def validate(ctx: click.Context, verbose: bool, files: tuple[Path, ...]) -> None
             file_path, verbose=ctx.obj["verbose"], console=ctx.obj["console"]
         )
 
-        # Add non-verbose output
+        # Only show output in non-verbose mode (verbose output handled in validate_file)
         if not verbose:
             ctx.obj["console"].print(f"[path]{file_path}[/path] ", end="")
             # Non-.conf/.meta files get a warning symbol
@@ -136,7 +136,8 @@ def validate(ctx: click.Context, verbose: bool, files: tuple[Path, ...]) -> None
         ]
 
     # Add final newline
-    ctx.obj["console"].print()
+    if not verbose:
+        ctx.obj["console"].print()
 
 
 if __name__ == "__main__":  # pragma: no cover

@@ -196,9 +196,6 @@ def _validate_stanzas(
     Returns:
         Tuple of (seen sections dict, list of issues)
     """
-    if verbose:
-        console.print("Checking syntax...", end=" ")
-
     issues = []
     seen_sections = {}
 
@@ -230,9 +227,6 @@ def _validate_stanzas(
                     )
                 )
             seen_sections[section] = lineno
-
-    if verbose:
-        print_step_result(console, not issues)
 
     return seen_sections, issues
 
@@ -269,33 +263,45 @@ def validate_file(file_path: Path, verbose: bool, console: Console) -> Validatio
         file_path, verbose, console
     )
     if validation_type == ValidationType.NONE:
-        return ValidationResult(
+        result = ValidationResult(
             file_path=file_path,
             is_valid=True,  # Non-Splunk files are considered valid
             issues=extension_issues,
             stats=stats,
         )
+        if verbose:
+            console.print(f"[path]{file_path}[/path] ", end="")
+            print_step_result(console, "warning")
+            console.print()
+        return result
     issues.extend(extension_issues)
 
     # Basic validation for all recognized file types
     is_valid, encoding_issues = _validate_encoding(file_path, verbose, console)
     if not is_valid:
+        result = ValidationResult(
+            file_path=file_path, is_valid=False, issues=encoding_issues, stats=stats
+        )
         if verbose:
             console.print(f"[path]{file_path}[/path] ", end="")
             print_step_result(console, False)
-        return ValidationResult(
-            file_path=file_path, is_valid=False, issues=encoding_issues, stats=stats
-        )
+            console.print()
+        return result
     issues.extend(encoding_issues)
 
     # Only proceed with full validation for .conf and .meta files
     if validation_type != ValidationType.FULL:
-        return ValidationResult(
+        result = ValidationResult(
             file_path=file_path,
             is_valid=True,
             issues=issues,
             stats=stats,
         )
+        if verbose:
+            console.print(f"[path]{file_path}[/path] ", end="")
+            print_step_result(console, True)
+            console.print()
+        return result
 
     # Full validation continues here
     content, file_stats = _read_file_content(file_path, verbose, console)
@@ -304,6 +310,7 @@ def validate_file(file_path: Path, verbose: bool, console: Console) -> Validatio
     seen_sections, stanza_issues = _validate_stanzas(content, verbose, console)
     issues.extend(stanza_issues)
 
+    syntax_valid = True
     if not any(issue.type == IssueType.SYNTAX for issue in issues):
         try:
             processed_content = []
@@ -320,9 +327,9 @@ def validate_file(file_path: Path, verbose: bool, console: Console) -> Validatio
             if verbose:
                 console.print(f"Found {stats['stanzas']} stanzas")
         except ConfigParserError as e:
+            syntax_valid = False
             if verbose:
-                print_step_result(console, False)
-                console.print(f"[path]{file_path}[/path] ", end="")
+                console.print("Checking syntax... ", end="")
                 print_step_result(console, False)
             issues.append(
                 ValidationIssue(
@@ -345,7 +352,9 @@ def validate_file(file_path: Path, verbose: bool, console: Console) -> Validatio
     )
 
     # Print final result if verbose
-    if verbose:
+    if verbose and (not result.is_valid or validation_type == ValidationType.FULL):
+        if not syntax_valid:
+            console.print()  # Add newline before error output
         console.print(f"[path]{file_path}[/path] ", end="")
         print_step_result(console, result.is_valid)
         if not result.is_valid:
