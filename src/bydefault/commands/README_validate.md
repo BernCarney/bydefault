@@ -36,24 +36,23 @@ default/inputs.conf ✗
 
 #### Verbose Output (--verbose)
 
-Shows detailed progress of validation steps:
-
-- File extension check
-- UTF-8 encoding verification
-- File reading progress
-- Syntax validation
-- Stanza counting
-- Final validation result
-
-Example:
+Shows detailed validation progress with status indicators:
 
 ```bash
 $ bydefault validate --verbose props.conf
 Validating props.conf...
-✓ UTF-8 encoding check passed
-✓ Found 12 valid stanzas
-✓ No duplicate keys detected
-✓ All syntax valid
+Checking file extension... ✓
+Checking file encoding... ✓
+Reading file... ✓
+Found 12 stanzas
+props.conf ✓
+
+Validating transforms.conf...
+Checking file extension... ✓
+Checking file encoding... ✓
+Reading file... ✓
+Checking syntax... ✗
+• Line 45: Invalid stanza format
 ```
 
 ## Programmatic Usage
@@ -122,6 +121,22 @@ The validator checks for:
    - Valid section hierarchy
    - Line count tracking
    - Stanza count statistics
+
+## Output Styling
+
+The validator uses the following status indicators:
+
+- ✓ (green checkmark): Successful validation
+- ✗ (red X): Validation failure
+- ⚠ (yellow warning): Warning or caution
+- • (yellow bullet): Error or warning details
+
+All status indicators are color-coded using the One Dark theme:
+
+- Success messages in green
+- Error messages in red
+- Warnings in yellow
+- File paths and general information in default terminal color
 
 ## Error Messages
 
