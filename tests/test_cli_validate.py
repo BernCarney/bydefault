@@ -80,9 +80,9 @@ def test_validate_help(runner):
     result = runner.invoke(cli, ["validate", "--help"])
     assert result.exit_code == 0
     assert "Usage:" in result.output
-    assert "• Non-configuration" in result.output
-    assert "• For .conf and .meta files, performs full validation" in result.output
-    assert "• For other supported files (.conf.spec" in result.output
+    assert "Non-configuration" in result.output
+    assert "For .conf and .meta files, performs full validation" in result.output
+    assert "For other supported files (.conf.spec" in result.output
     assert "FILES:" in result.output
     assert "--verbose" in result.output
     assert "--help" in result.output
