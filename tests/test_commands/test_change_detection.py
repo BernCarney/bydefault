@@ -1,17 +1,17 @@
-"""Tests for the change detection functionality."""
+"""Tests for the change detection module."""
 
 import shutil
 import tempfile
 from pathlib import Path
 from unittest import TestCase
 
-from bydefault.commands.change_detection import (
+from bydefault.models.change_detection import ChangeType
+from bydefault.utils.change_detection import (
     _parse_conf_file,
     detect_file_changes,
     detect_stanza_changes,
     scan_directory,
 )
-from bydefault.models.change_detection import ChangeType
 
 
 class TestChangeDetection(TestCase):

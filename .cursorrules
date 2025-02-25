@@ -111,6 +111,19 @@
       ]
     },
     {
+      "context": "UV Commands",
+      "instructions": [
+        "For running the CLI directly from source:",
+        "  - uv run ./src/bydefault/cli.py [command] [options]",
+        "For building and installing the package:",
+        "  - uv sync --all-extras && uv build && uv tool install --reinstall-package bydefault ./dist/bydefault-*.tar.gz",
+        "For development installation:",
+        "  - uv pip install -e \".[dev]\"",
+        "Always sync dependencies before running tests:",
+        "  - uv sync --all-extras"
+      ]
+    },
+    {
       "context": "Git Operations",
       "instructions": [
         "When amending commits:",

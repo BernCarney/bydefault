@@ -7,6 +7,7 @@ from rich.console import Console
 from rich.theme import Theme
 
 from bydefault import __prog_name__, __version__
+from bydefault.commands.scan import scan_command
 from bydefault.commands.validator import validate_file
 from bydefault.utils.output import (
     CHALKY,
@@ -39,28 +40,26 @@ console = Console(theme=custom_theme)
 
 
 @click.group()
-@click.version_option(version=__version__, prog_name=__prog_name__)
+@click.version_option(
+    version=__version__,
+    prog_name=__prog_name__,
+)
 @click.pass_context
 def cli(ctx: click.Context) -> None:
-    """CLI tools for Splunk TA development and maintenance.
+    """byDefault - CLI tools for Splunk TA development and maintenance.
 
-    A collection of tools for developing and maintaining Splunk Technology
-    Add-ons (TAs). Implemented commands can be found in the help text below.
+    A collection of commands designed to assist in Splunk TA development.
+    This project is under active development.
 
-    Currently under active development with the following planned commands:
-    - scan:     Detect and report configuration changes
-    - sort:     Sort configuration files maintaining structure
-    - merge:    Merge local configurations into default
-    - bumpver:  Update version numbers across TAs
+    Planned commands:
+    - scan: Detect and report configuration changes
+    - sort: Sort configuration files while maintaining structure
+    - merge: Merge local configurations into default
+    - bumpver: Update version numbers across TAs
     """
-    # Initialize context object with default values
+    # Initialize shared console
     ctx.ensure_object(dict)
-    ctx.obj.update(
-        {
-            "verbose": False,
-            "console": console,
-        }
-    )
+    ctx.obj["console"] = console
 
 
 @cli.command()
@@ -92,6 +91,7 @@ def validate(ctx: click.Context, verbose: bool, files: tuple[Path, ...]) -> None
         ctx.obj["console"].print("\nExample usage:")
         ctx.obj["console"].print("  bydefault validate *.conf")
         ctx.obj["console"].print("  bydefault validate default/*.conf default/*.meta")
+        ctx.obj["console"].print("  bydefault validate --verbose path/to/props.conf")
         ctx.obj["console"].print("  bydefault validate --verbose path/to/props.conf")
         ctx.exit(1)
 
@@ -138,6 +138,80 @@ def validate(ctx: click.Context, verbose: bool, files: tuple[Path, ...]) -> None
     # Add final newline
     if not verbose:
         ctx.obj["console"].print()
+
+
+@cli.command()
+@click.argument("paths", nargs=-1, type=click.Path(exists=True, path_type=Path))
+@click.option(
+    "-b",
+    "--baseline",
+    help="Baseline TA to compare against",
+    type=click.Path(exists=True, path_type=Path),
+)
+@click.option(
+    "-r",
+    "--recursive",
+    is_flag=True,
+    help="Recursively search for TAs in the specified directories",
+)
+@click.option(
+    "-s",
+    "--summary",
+    is_flag=True,
+    help="Show only a summary of changes",
+)
+@click.option(
+    "-d",
+    "--details",
+    is_flag=True,
+    help="Show detailed changes (default)",
+)
+@click.pass_context
+def scan(
+    ctx: click.Context,
+    paths: tuple[Path, ...],
+    baseline: Path,
+    recursive: bool,
+    summary: bool,
+    details: bool,
+) -> None:
+    """Scan Splunk TA directories for configuration changes.
+
+    Detects and reports changes in Splunk TA configuration files,
+    comparing against a baseline or reporting all configurations.
+
+    Arguments:
+    - PATHS: One or more paths to scan (directories or individual TA directories)
+
+    """
+    if not paths:
+        ctx.obj["console"].print("[error]Error:[/error] No paths specified.")
+        ctx.obj["console"].print("\nUsage: bydefault scan [OPTIONS] PATHS...")
+        ctx.obj["console"].print("\nExample usage:")
+        ctx.obj["console"].print("  bydefault scan path/to/ta")
+        ctx.obj["console"].print(
+            "  bydefault scan -b baseline_ta path/to/ta1 path/to/ta2"
+        )
+        ctx.obj["console"].print("  bydefault scan -r -s path/containing/tas")
+        ctx.exit(1)
+
+    # Convert to strings for the scan_command function
+    path_strings = [str(path) for path in paths]
+    baseline_string = str(baseline) if baseline else None
+
+    # Default to details if neither flag is set
+    if not summary and not details:
+        details = True
+
+    exit_code = scan_command(
+        paths=path_strings,
+        baseline=baseline_string,
+        recursive=recursive,
+        summary=summary,
+        details=details,
+    )
+
+    ctx.exit(exit_code)
 
 
 if __name__ == "__main__":  # pragma: no cover
