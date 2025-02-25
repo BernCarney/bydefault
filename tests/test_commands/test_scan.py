@@ -288,7 +288,7 @@ class TestDisplayResultsFunction(TestCase):
 
         # Verify console.print was called
         self.console.print.assert_any_call(
-            f"\n[bold blue]{self.ta_dir.name}:[/bold blue] No changes detected"
+            f"\n[blue]{self.ta_dir.name}:[/blue] No changes detected between local and default"
         )
 
     def test_display_results_invalid_ta(self):
@@ -354,7 +354,7 @@ class TestDisplayResultsFunction(TestCase):
 
         # Verify console.print was called with the right arguments
         self.console.print.assert_any_call(
-            f"\n[bold green]{self.ta_dir.name}: 2 changes detected[/bold green]"
+            f"\n[bold green]{self.ta_dir.name}: 2 changes detected in local[/bold green]"
         )
 
     def test_display_results_with_changes_details(self):
@@ -395,7 +395,7 @@ class TestDisplayResultsFunction(TestCase):
 
         # Verify console.print was called with the right arguments
         self.console.print.assert_any_call(
-            f"\n[bold green]{self.ta_dir.name}: 1 changes detected[/bold green]"
+            f"\n[bold green]{self.ta_dir.name}: 1 changes detected in local[/bold green]"
         )
 
 

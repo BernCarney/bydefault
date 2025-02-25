@@ -25,11 +25,14 @@ def scan_command(
     details: bool = True,
 ) -> int:
     """
-    Scan Splunk TA directories for configuration changes.
+    Scan Splunk TA directories for configuration changes between local and default.
+
+    This command identifies changes made in the local directory compared to the default directory,
+    which is essential for understanding what changes need to be merged from local to default.
 
     Args:
         paths: List of paths to scan
-        baseline: Optional baseline path to compare against
+        baseline: Optional baseline path to compare against (advanced use case)
         recursive: Whether to recursively search for TAs in the specified paths
         summary: Whether to show only a summary of changes
         details: Whether to show detailed changes
@@ -100,7 +103,7 @@ def scan_command(
 
 def _display_results(console, scan_results, summary, details):
     """
-    Display scan results to the user.
+    Display scan results to the user, showing changes between local and default.
 
     Args:
         console: Rich console instance
@@ -138,7 +141,7 @@ def _display_results(console, scan_results, summary, details):
 
         # Display header for this TA
         if total_changes > 0:
-            header = f"{ta_name}: {total_changes} changes detected"
+            header = f"{ta_name}: {total_changes} changes detected in local"
             console.print(f"\n[bold green]{header}[/bold green]")
 
             if summary:
@@ -148,11 +151,17 @@ def _display_results(console, scan_results, summary, details):
                 summary_table.add_column("Count", justify="right")
 
                 if added_files > 0:
-                    summary_table.add_row("Added Files", str(added_files))
+                    summary_table.add_row(
+                        "Files in local not in default", str(added_files)
+                    )
                 if removed_files > 0:
-                    summary_table.add_row("Removed Files", str(removed_files))
+                    summary_table.add_row(
+                        "Files in default not in local", str(removed_files)
+                    )
                 if modified_files > 0:
-                    summary_table.add_row("Modified Files", str(modified_files))
+                    summary_table.add_row(
+                        "Files modified in local", str(modified_files)
+                    )
 
                 console.print(summary_table)
 
@@ -162,11 +171,11 @@ def _display_results(console, scan_results, summary, details):
                     file_path = file_change.file_path
 
                     if file_change.is_new:
-                        change_type = "[green]ADDED[/green]"
+                        change_type = "[green]ADDED IN LOCAL[/green]"
                     elif not file_change.stanza_changes:
-                        change_type = "[red]REMOVED[/red]"
+                        change_type = "[red]NOT IN LOCAL[/red]"
                     else:
-                        change_type = "[yellow]MODIFIED[/yellow]"
+                        change_type = "[yellow]MODIFIED IN LOCAL[/yellow]"
 
                     console.print(f"\n  {change_type} {file_path}")
 
@@ -175,11 +184,11 @@ def _display_results(console, scan_results, summary, details):
                             stanza_name = stanza_change.name
 
                             if stanza_change.change_type == ChangeType.ADDED:
-                                stanza_type = "[green]ADDED[/green]"
+                                stanza_type = "[green]ADDED IN LOCAL[/green]"
                             elif stanza_change.change_type == ChangeType.REMOVED:
-                                stanza_type = "[red]REMOVED[/red]"
+                                stanza_type = "[red]NOT IN LOCAL[/red]"
                             else:
-                                stanza_type = "[yellow]MODIFIED[/yellow]"
+                                stanza_type = "[yellow]MODIFIED IN LOCAL[/yellow]"
 
                             console.print(f"    {stanza_type} [{stanza_name}]")
 
@@ -188,18 +197,20 @@ def _display_results(console, scan_results, summary, details):
                                 setting_name = setting_change.name
 
                                 if setting_change.change_type == ChangeType.ADDED:
-                                    setting_str = f"[green]+{setting_name} = {setting_change.local_value}[/green]"
+                                    setting_str = f"[green]+{setting_name} = {setting_change.local_value} (in local)[/green]"
                                 elif setting_change.change_type == ChangeType.REMOVED:
-                                    setting_str = f"[red]-{setting_name} = {setting_change.default_value}[/red]"
+                                    setting_str = f"[red]-{setting_name} = {setting_change.default_value} (in default)[/red]"
                                 else:
                                     setting_str = (
                                         f"[yellow]{setting_name} = "
-                                        f"{setting_change.default_value} → {setting_change.local_value}[/yellow]"
+                                        f"{setting_change.default_value} (default) → {setting_change.local_value} (local)[/yellow]"
                                     )
 
                                 console.print(f"      {setting_str}")
         else:
-            console.print(f"\n[bold blue]{ta_name}:[/bold blue] No changes detected")
+            console.print(
+                f"\n[blue]{ta_name}:[/blue] No changes detected between local and default"
+            )
 
 
 def add_subparser(subparsers):

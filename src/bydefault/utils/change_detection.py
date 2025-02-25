@@ -326,28 +326,46 @@ def _files_are_identical(file1: Path, file2: Path) -> bool:
 
 def scan_directory(ta_path: Path, baseline_path: Optional[Path] = None) -> ScanResult:
     """
-    Scan a TA directory for changes compared to an optional baseline.
+    Scan a TA directory for changes between local and default directories.
+    If a baseline_path is provided (advanced use case), compare the TA against the baseline instead.
 
     Args:
         ta_path: Path to the TA directory to scan
-        baseline_path: Optional path to a baseline TA directory to compare against
+        baseline_path: Optional path to a baseline TA directory to compare against (advanced use case)
 
     Returns:
         ScanResult object containing information about changes detected
     """
-    if baseline_path is None:
-        # If no baseline, just identify all files as new
-        file_changes = detect_file_changes(ta_path)
+    if not ta_path.is_dir():
+        raise ValueError(f"TA path {ta_path} must be a directory")
+
+    # Check for local and default directories in the TA
+    local_dir = ta_path / "local"
+    default_dir = ta_path / "default"
+
+    if not default_dir.is_dir():
+        raise ValueError(f"TA path {ta_path} does not have a default directory")
+
+    if baseline_path:
+        # Advanced use case: compare against baseline
+        file_changes = detect_file_changes(baseline_path, ta_path)
+        return ScanResult(
+            ta_path=ta_path,
+            file_changes=file_changes,
+            is_valid_ta=True,
+        )
+    elif local_dir.is_dir():
+        # Standard use case: compare local vs default
+        file_changes = detect_file_changes(default_dir, local_dir)
         return ScanResult(
             ta_path=ta_path,
             file_changes=file_changes,
             is_valid_ta=True,
         )
     else:
-        # Compare against baseline
-        file_changes = detect_file_changes(baseline_path, ta_path)
+        # No local directory, so no changes to report
         return ScanResult(
             ta_path=ta_path,
-            file_changes=file_changes,
+            file_changes=[],
             is_valid_ta=True,
         )
