@@ -2,16 +2,16 @@
 
 ## Overview
 
-The `scan` command is designed to detect and report configuration changes in Splunk Technology Add-ons (TAs). It helps Splunk developers identify differences between TA versions or track changes over time.
+The `scan` command is designed to detect and report configuration changes between the `local` and `default` directories within Splunk Technology Add-ons (TAs). This is an essential part of the Splunk development workflow, where changes are first made in the `local` directory during development and testing, and later need to be merged into the `default` directory for version control.
 
 ## Features
 
 - Automatic detection of valid Splunk TA directories
 - Recursive searching through directory structures
-- Configuration file analysis and comparison
+- Configuration file analysis to identify local changes
 - Change detection at file, stanza, and setting levels
 - Summary and detailed reporting options
-- Baseline comparison functionality
+- Baseline comparison functionality for advanced use cases
 
 ## Usage
 
@@ -25,7 +25,7 @@ $ bydefault scan [OPTIONS] PATHS...
 
 ### Options
 
-- `-b, --baseline PATH`: Baseline TA to compare against
+- `-b, --baseline PATH`: Optional baseline TA to compare against (advanced use case)
 - `-r, --recursive`: Recursively search for TAs in the specified directories
 - `-s, --summary`: Show only a summary of changes
 - `-d, --details`: Show detailed changes (default)
@@ -35,23 +35,13 @@ $ bydefault scan [OPTIONS] PATHS...
 
 ### Scan a Single TA
 
-To scan a single TA directory:
+To scan a single TA directory for changes between local and default:
 
 ```bash
 $ bydefault scan path/to/ta
 ```
 
-The command will analyze the TA structure and report all configuration settings.
-
-### Compare with Baseline
-
-To compare a TA with a baseline version:
-
-```bash
-$ bydefault scan -b baseline_ta path/to/ta
-```
-
-This will report all differences between the target TA and the baseline TA.
+The command will identify configuration changes in the local directory compared to the default directory.
 
 ### Scan Multiple TAs
 
@@ -88,39 +78,34 @@ The scan command first validates the provided paths and identifies valid Splunk 
 
 ### Change Detection
 
-When scanning a single TA without a baseline, the command reports all configuration files and their settings.
+The scan command identifies differences between configuration files in the `local` and `default` directories of each TA:
 
-When comparing with a baseline, the command detects:
+1. **Added Files**: Configuration files present in `local` but not in `default`
+2. **Modified Files**: Configuration files present in both directories but with different content
 
-1. **Added Files**: Configuration files present in the target TA but not in the baseline
-2. **Removed Files**: Configuration files present in the baseline but not in the target TA
-3. **Modified Files**: Configuration files with different content between the two TAs
+For files that exist in both locations, the command further analyzes:
 
-For modified files, the command further analyzes:
-
-1. **Added Stanzas**: Stanzas present in the target TA but not in the baseline
-2. **Removed Stanzas**: Stanzas present in the baseline but not in the target TA
-3. **Modified Stanzas**: Stanzas with changes to settings between the two TAs
+1. **Added Stanzas**: Stanzas present in `local` but not in `default`
+2. **Modified Stanzas**: Stanzas present in both but with different settings
 
 Within modified stanzas, the command identifies:
 
-1. **Added Settings**: Settings present in the target TA but not in the baseline
-2. **Removed Settings**: Settings present in the baseline but not in the target TA
-3. **Modified Settings**: Settings with different values between the two TAs
+1. **Added Settings**: Settings present in `local` but not in `default`
+2. **Modified Settings**: Settings with different values between the two directories
 
 ### Results Display
 
 Results can be displayed in two formats:
 
 1. **Summary Mode**: Shows counts of changes at file, stanza, and setting levels
-2. **Details Mode**: Shows specific changes, including added/removed/modified items with their values
+2. **Details Mode**: Shows specific changes, including added and modified items with their values
 
 ## Integration with Other Commands
 
-The scan command can be used in conjunction with other byDefault commands:
+The scan command is designed to work with future byDefault commands:
 
-- Use before `merge` to identify configuration differences
-- Use with `validate` to ensure configurations are valid before comparison
+- Use before `merge` to identify local changes that need to be merged into default
+- Use with `validate` to ensure configurations are valid before merging
 
 ## Error Handling
 
@@ -136,36 +121,42 @@ Errors are reported with clear messages and do not terminate the scanning proces
 
 ## Using in Development Workflows
 
-### For Initial TA Development
+### For Splunk TA Development
 
-During initial development, scan a TA without a baseline to inventory all configuration settings:
-
-```bash
-$ bydefault scan -d path/to/new_ta
-```
-
-### For TA Updates
-
-When updating a TA, compare with the previous version to understand changes:
+During development, use the scan command to identify changes made in local:
 
 ```bash
-$ bydefault scan -b path/to/old_version path/to/new_version
+$ bydefault scan -d path/to/ta
 ```
+
+Review the changes to ensure they're intended before merging them to default.
 
 ### For Multiple TA Management
 
-When managing multiple TAs, recursively scan a directory containing all TAs:
+When managing multiple TAs in a development environment:
 
 ```bash
 $ bydefault scan -r -s path/to/ta_collection
 ```
+
+This helps identify which TAs have local changes that might need attention.
+
+### Advanced Use: Compare Against Baseline
+
+For special cases, you can compare against a baseline TA:
+
+```bash
+$ bydefault scan -b baseline_ta path/to/ta
+```
+
+This is useful when comparing against a reference implementation rather than just local vs. default.
 
 ## Technical Details
 
 The scan command uses several components:
 
 - `scanner.py`: For detecting valid TA structures
-- `change_detection.py`: For identifying differences between configurations
+- `change_detection.py`: For identifying differences between local and default configurations
 - Models: For representing different types of changes
 
 These components are designed to be modular and reusable in other parts of the byDefault tool. 
