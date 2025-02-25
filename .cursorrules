@@ -3,6 +3,31 @@
   "description": "A Python application with command line tools for Splunk 9.2.2 developers using UV for package and venv management, Ruff for linting and formatting, and tested with pytest.",
   "rules": [
     {
+      "context": "Project Development Principles",
+      "instructions": [
+        "Follow these core software development principles:",
+        "  - SOLID: Write code that is modular, extensible, and maintainable",
+        "    - Single Responsibility: Each class/module should have only one reason to change",
+        "    - Open/Closed: Open for extension, closed for modification",
+        "    - Liskov Substitution: Subtypes must be substitutable for their base types",
+        "    - Interface Segregation: Many client-specific interfaces better than one general-purpose interface",
+        "    - Dependency Inversion: Depend on abstractions, not concretions",
+        "  - DRY (Don't Repeat Yourself): Eliminate duplication through abstraction",
+        "  - KISS (Keep It Simple, Stupid): Favor simplicity over complexity",
+        "  - YAGNI (You Aren't Gonna Need It): Only implement what is currently needed",
+        "Prioritize maintainability and clarity over clever or complex solutions",
+        "Phase-based development requirements:",
+        "  - Each phase builds upon prior phases without modifying existing functionality",
+        "  - Only modify previous phase code when absolutely necessary",
+        "  - Document thoroughly any changes to previous phase implementations",
+        "Command design principles:",
+        "  - Commands should be additive and integrative with existing functionality",
+        "  - New commands must not break existing command behavior",
+        "  - All commands should follow consistent patterns for options and output",
+        "  - Design commands to be composable where appropriate"
+      ]
+    },
+    {
       "context": "Python CLI Development",
       "instructions": [
         "Use UV for package and venv management. Ensure package requirements and dependencies are defined in a way that supports UV.",
