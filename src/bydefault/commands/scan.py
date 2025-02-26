@@ -11,6 +11,7 @@ from typing import List, Optional
 
 from rich.console import Console
 from rich.table import Table
+from rich.text import Text
 
 from bydefault.models.change_detection import ChangeType
 from bydefault.utils.change_detection import scan_directory
@@ -23,6 +24,7 @@ def scan_command(
     recursive: bool = False,
     summary: bool = False,
     details: bool = True,
+    console: Optional[Console] = None,
 ) -> int:
     """
     Scan Splunk TA directories for configuration changes between local and default.
@@ -36,11 +38,14 @@ def scan_command(
         recursive: Whether to recursively search for TAs in the specified paths
         summary: Whether to show only a summary of changes
         details: Whether to show detailed changes
+        console: Optional Rich console instance to use for output (uses custom theme if provided)
 
     Returns:
         Exit code: 0 for success, non-zero for failure
     """
-    console = Console()
+    # Use provided console or create a new one if not provided
+    if console is None:
+        console = Console()
 
     # Validate paths
     valid_paths = []
@@ -121,12 +126,12 @@ def _display_results(console, scan_results, summary=False, details=True):
 
         # Skip invalid TAs
         if not result.is_valid_ta:
-            console.print(f"{ta_name}: Not a valid Splunk TA", markup=False)
+            console.print(f"{ta_name}: Not a valid Splunk TA")
             continue
 
         # Display error message if any
         if result.error_message:
-            console.print(f"{ta_name}: {result.error_message}", markup=False)
+            console.print(f"{ta_name}: {result.error_message}")
             continue
 
         # Calculate number of changes
@@ -134,7 +139,7 @@ def _display_results(console, scan_results, summary=False, details=True):
 
         if total_changes > 0:
             # Display TA header with changes
-            console.print(f"Changes detected in: {ta_name}", markup=False)
+            console.print(f"Changes detected in: {ta_name}")
 
             # Group changes by type for more organized display
             added_files = []
@@ -158,35 +163,49 @@ def _display_results(console, scan_results, summary=False, details=True):
             if details:
                 # Display modified files first
                 if modified_files:
-                    console.print("  Modified local files:", markup=False)
+                    text = Text("  Modified local files:", style="modification")
+                    console.print(text)
                     for file_change in modified_files:
                         file_path = file_change.file_path
-                        console.print(f"    {file_path}", markup=False)
+                        console.print(f"    {file_path}")
 
                         # Display stanza changes
                         for stanza_change in file_change.stanza_changes:
                             stanza_name = stanza_change.name
 
-                            # Determine stanza change type
+                            # Determine stanza change type and use appropriate colors
                             if stanza_change.change_type == ChangeType.ADDED:
-                                stanza_label = "New stanza"
+                                # Create a text instance with the stanza name (no markup) and message (with markup)
+                                text = Text()
+                                text.append(f"      {stanza_name} - ")
+                                text.append("New stanza", style="addition")
+                                console.print(text)
                             elif stanza_change.change_type == ChangeType.REMOVED:
-                                stanza_label = "Removed stanza"
+                                text = Text()
+                                text.append(f"      {stanza_name} - ")
+                                text.append("Removed stanza", style="deletion")
+                                console.print(text)
                             else:
-                                stanza_label = "Modified"
-
-                            # Use markup=False to avoid rich processing the brackets as markup
-                            console.print(
-                                f"      [{stanza_name}] - {stanza_label}",
-                                markup=False,
-                            )
+                                text = Text()
+                                text.append(f"      {stanza_name} - ")
+                                text.append("Modified", style="modification")
+                                console.print(text)
 
                 # Display added files
                 if added_files:
-                    console.print("  Local files not in default:", markup=False)
+                    text = Text("  Local files not in default:", style="addition")
+                    console.print(text)
                     for file_change in added_files:
                         file_path = file_change.file_path
-                        console.print(f"    {file_path}", markup=False)
+                        console.print(f"    {file_path}")
+
+                # Display removed files
+                if removed_files:
+                    text = Text("  Files removed from local:", style="deletion")
+                    console.print(text)
+                    for file_change in removed_files:
+                        file_path = file_change.file_path
+                        console.print(f"    {file_path}")
 
             # If summary view is requested
             elif summary:
@@ -196,13 +215,24 @@ def _display_results(console, scan_results, summary=False, details=True):
                 table.add_column("Count")
 
                 if added_files:
-                    table.add_row("Local files not in default", str(len(added_files)))
+                    table.add_row(
+                        Text("Local files not in default", style="addition"),
+                        str(len(added_files)),
+                    )
                 if modified_files:
-                    table.add_row("Modified local files", str(len(modified_files)))
+                    table.add_row(
+                        Text("Modified local files", style="modification"),
+                        str(len(modified_files)),
+                    )
+                if removed_files:
+                    table.add_row(
+                        Text("Files removed from local", style="deletion"),
+                        str(len(removed_files)),
+                    )
 
                 console.print(table)
         else:
-            console.print(f"No changes detected in: {ta_name}", markup=False)
+            console.print(f"No changes detected in: {ta_name}")
 
 
 def add_subparser(subparsers):

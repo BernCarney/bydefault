@@ -169,7 +169,9 @@ class TestScanCommand(TestCase):
 
         # Verify the result
         self.assertEqual(result, 0)  # Still returns 0 as this is not a fatal error
-        mock_console().print.assert_called_with(mock.ANY)  # Called with error message
+        mock_console().print.assert_any_call(
+            f"[red]Error scanning {self.ta_dir}: Test error[/red]"
+        )  # Called with error message
 
 
 class TestDisplayResults(TestCase):
@@ -271,26 +273,6 @@ class TestDisplayResultsFunction(TestCase):
         """Tear down test fixtures."""
         shutil.rmtree(self.test_dir, ignore_errors=True)
 
-    def test_display_results_no_changes(self):
-        """Test displaying results with no changes."""
-        # Create a scan result with no changes
-        scan_results = [
-            ScanResult(
-                ta_path=self.ta_dir,
-                file_changes=[],
-                is_valid_ta=True,
-                error_message=None,
-            )
-        ]
-
-        # Call the function
-        _display_results(self.console, scan_results, False, True)
-
-        # Verify console.print was called
-        self.console.print.assert_any_call(
-            f"\n[blue]{self.ta_dir.name}:[/blue] No changes detected between local and default"
-        )
-
     def test_display_results_invalid_ta(self):
         """Test displaying results for an invalid TA."""
         # Create a scan result for an invalid TA
@@ -307,9 +289,7 @@ class TestDisplayResultsFunction(TestCase):
         _display_results(self.console, scan_results, False, True)
 
         # Verify console.print was called
-        self.console.print.assert_any_call(
-            f"[yellow]{self.ta_dir.name}:[/yellow] Not a valid Splunk TA"
-        )
+        self.console.print.assert_any_call(f"{self.ta_dir.name}: Not a valid Splunk TA")
 
     def test_display_results_with_error(self):
         """Test displaying results with an error message."""
@@ -327,8 +307,26 @@ class TestDisplayResultsFunction(TestCase):
         _display_results(self.console, scan_results, False, True)
 
         # Verify console.print was called
+        self.console.print.assert_any_call(f"{self.ta_dir.name}: Test error message")
+
+    def test_display_results_no_changes(self):
+        """Test displaying results with no changes."""
+        # Create a scan result with no changes
+        scan_results = [
+            ScanResult(
+                ta_path=self.ta_dir,
+                file_changes=[],
+                is_valid_ta=True,
+                error_message=None,
+            )
+        ]
+
+        # Call the function
+        _display_results(self.console, scan_results, False, True)
+
+        # Verify console.print was called
         self.console.print.assert_any_call(
-            f"[red]{self.ta_dir.name}:[/red] Test error message"
+            f"No changes detected in: {self.ta_dir.name}"
         )
 
     def test_display_results_with_changes_summary(self):
@@ -353,9 +351,8 @@ class TestDisplayResultsFunction(TestCase):
         _display_results(self.console, scan_results, True, False)
 
         # Verify console.print was called with the right arguments
-        self.console.print.assert_any_call(
-            f"\n[bold green]{self.ta_dir.name}: 2 changes detected in local[/bold green]"
-        )
+        self.console.print.assert_any_call(f"Changes detected in: {self.ta_dir.name}")
+        self.console.print.assert_any_call(mock.ANY)  # Table object
 
     def test_display_results_with_changes_details(self):
         """Test displaying results with changes in detail mode."""
@@ -394,8 +391,25 @@ class TestDisplayResultsFunction(TestCase):
         _display_results(self.console, scan_results, False, True)
 
         # Verify console.print was called with the right arguments
-        self.console.print.assert_any_call(
-            f"\n[bold green]{self.ta_dir.name}: 1 changes detected in local[/bold green]"
+        self.console.print.assert_any_call(f"Changes detected in: {self.ta_dir.name}")
+
+        # Assert that a Text object with the right style was passed to console.print
+        # We can use mock.ANY for the Text object and check that it has the right style
+        any_call_found = False
+        for call in self.console.print.call_args_list:
+            args, _ = call
+            if (
+                len(args) == 1
+                and hasattr(args[0], "style")
+                and args[0].style == "modification"
+                and "Modified local files:" in str(args[0])
+            ):
+                any_call_found = True
+                break
+
+        self.assertTrue(
+            any_call_found,
+            "Expected a call to console.print with a Text object styled as 'modification' containing 'Modified local files:'",
         )
 
 

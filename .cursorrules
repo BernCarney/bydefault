@@ -42,6 +42,9 @@
       "instructions": [
         "Always provide terminal commands in a copy-pasteable format using && for command chaining",
         "Git commands should be provided as a single line that can be directly copied to terminal",
+        "For Git commit commands with multi-line messages, use multiple -m flags instead of newlines:",
+        "  - INCORRECT: git commit -m \"type: description\\n\\n- Change 1\\n- Change 2\"",
+        "  - CORRECT: git commit -m \"type: description\" -m \"- Change 1\" -m \"- Change 2\"",
         "Git commit messages should follow the format:",
         "  - First line: type: brief description",
         "  - Blank line",

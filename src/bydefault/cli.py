@@ -33,6 +33,10 @@ custom_theme = Theme(
         "message": IVORY,  # Light gray from output.py
         "line_number": CYAN,  # Cyan from output.py
         "title": VIOLET,  # Purple from output.py
+        # Add styles for scan command outputs
+        "addition": SAGE,  # Light green for additions
+        "modification": CHALKY,  # Light yellow for modifications
+        "deletion": CORAL,  # Light red for deletions
     }
 )
 
@@ -209,6 +213,7 @@ def scan(
         recursive=recursive,
         summary=summary,
         details=details,
+        console=ctx.obj["console"],
     )
 
     ctx.exit(exit_code)
