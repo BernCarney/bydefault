@@ -101,116 +101,108 @@ def scan_command(
     return 0
 
 
-def _display_results(console, scan_results, summary, details):
+def _display_results(console, scan_results, summary=False, details=True):
     """
-    Display scan results to the user, showing changes between local and default.
+    Display scan results.
 
     Args:
         console: Rich console instance
         scan_results: List of ScanResult objects
-        summary: Whether to show only a summary
+        summary: Whether to show summary table
         details: Whether to show detailed changes
     """
-    console.print("\n[bold]Scan Results:[/bold]")
+    # Process each scan result
+    for i, result in enumerate(scan_results):
+        ta_path = result.ta_path
+        ta_name = ta_path.name
 
-    for result in scan_results:
-        ta_name = result.ta_path.name
+        # Add a line break before each TA
+        console.print("")
 
+        # Skip invalid TAs
         if not result.is_valid_ta:
-            console.print(f"[yellow]{ta_name}:[/yellow] Not a valid Splunk TA")
+            console.print(f"{ta_name}: Not a valid Splunk TA", markup=False)
             continue
 
+        # Display error message if any
         if result.error_message:
-            console.print(f"[red]{ta_name}:[/red] {result.error_message}")
+            console.print(f"{ta_name}: {result.error_message}", markup=False)
             continue
 
-        # Count changes by type
-        added_files = 0
-        removed_files = 0
-        modified_files = 0
+        # Calculate number of changes
+        total_changes = len(result.file_changes)
 
-        for file_change in result.file_changes:
-            if file_change.is_new:
-                added_files += 1
-            elif not file_change.stanza_changes:  # Removed files have no stanza changes
-                removed_files += 1
-            else:
-                modified_files += 1
-
-        total_changes = added_files + removed_files + modified_files
-
-        # Display header for this TA
         if total_changes > 0:
-            header = f"{ta_name}: {total_changes} changes detected in local"
-            console.print(f"\n[bold green]{header}[/bold green]")
+            # Display TA header with changes
+            console.print(f"Changes detected in: {ta_name}", markup=False)
 
-            if summary:
-                # Display summary table
-                summary_table = Table(show_header=True, header_style="bold")
-                summary_table.add_column("Change Type")
-                summary_table.add_column("Count", justify="right")
+            # Group changes by type for more organized display
+            added_files = []
+            removed_files = []
+            modified_files = []
 
-                if added_files > 0:
-                    summary_table.add_row(
-                        "Files in local not in default", str(added_files)
-                    )
-                if removed_files > 0:
-                    summary_table.add_row(
-                        "Files in default not in local", str(removed_files)
-                    )
-                if modified_files > 0:
-                    summary_table.add_row(
-                        "Files modified in local", str(modified_files)
-                    )
+            for file_change in result.file_changes:
+                file_path = file_change.file_path
 
-                console.print(summary_table)
+                if file_change.is_new and not file_change.stanza_changes:
+                    # New file without stanzas
+                    added_files.append(file_change)
+                elif not file_change.is_new and not file_change.stanza_changes:
+                    # Removed file
+                    removed_files.append(file_change)
+                else:
+                    # Modified file or new file with stanzas
+                    modified_files.append(file_change)
 
+            # If detailed view is requested
             if details:
-                # Display detailed changes
-                for file_change in result.file_changes:
-                    file_path = file_change.file_path
+                # Display modified files first
+                if modified_files:
+                    console.print("  Modified local files:", markup=False)
+                    for file_change in modified_files:
+                        file_path = file_change.file_path
+                        console.print(f"    {file_path}", markup=False)
 
-                    if file_change.is_new:
-                        change_type = "[green]ADDED IN LOCAL[/green]"
-                    elif not file_change.stanza_changes:
-                        change_type = "[red]NOT IN LOCAL[/red]"
-                    else:
-                        change_type = "[yellow]MODIFIED IN LOCAL[/yellow]"
-
-                    console.print(f"\n  {change_type} {file_path}")
-
-                    if file_change.stanza_changes:
+                        # Display stanza changes
                         for stanza_change in file_change.stanza_changes:
                             stanza_name = stanza_change.name
 
+                            # Determine stanza change type
                             if stanza_change.change_type == ChangeType.ADDED:
-                                stanza_type = "[green]ADDED IN LOCAL[/green]"
+                                stanza_label = "New stanza"
                             elif stanza_change.change_type == ChangeType.REMOVED:
-                                stanza_type = "[red]NOT IN LOCAL[/red]"
+                                stanza_label = "Removed stanza"
                             else:
-                                stanza_type = "[yellow]MODIFIED IN LOCAL[/yellow]"
+                                stanza_label = "Modified"
 
-                            console.print(f"    {stanza_type} [{stanza_name}]")
+                            # Use markup=False to avoid rich processing the brackets as markup
+                            console.print(
+                                f"      [{stanza_name}] - {stanza_label}",
+                                markup=False,
+                            )
 
-                            # Show setting changes
-                            for setting_change in stanza_change.setting_changes:
-                                setting_name = setting_change.name
+                # Display added files
+                if added_files:
+                    console.print("  Local files not in default:", markup=False)
+                    for file_change in added_files:
+                        file_path = file_change.file_path
+                        console.print(f"    {file_path}", markup=False)
 
-                                if setting_change.change_type == ChangeType.ADDED:
-                                    setting_str = f"[green]+{setting_name} = {setting_change.local_value} (in local)[/green]"
-                                elif setting_change.change_type == ChangeType.REMOVED:
-                                    setting_str = f"[red]-{setting_name} = {setting_change.default_value} (in default)[/red]"
-                                else:
-                                    setting_str = (
-                                        f"[yellow]{setting_name} = "
-                                        f"{setting_change.default_value} (default) → {setting_change.local_value} (local)[/yellow]"
-                                    )
+            # If summary view is requested
+            elif summary:
+                # Create a table for the summary
+                table = Table()
+                table.add_column("Change Type")
+                table.add_column("Count")
 
-                                console.print(f"      {setting_str}")
+                if added_files:
+                    table.add_row("Local files not in default", str(len(added_files)))
+                if modified_files:
+                    table.add_row("Modified local files", str(len(modified_files)))
+
+                console.print(table)
         else:
-            console.print(
-                f"\n[blue]{ta_name}:[/blue] No changes detected between local and default"
-            )
+            console.print(f"No changes detected in: {ta_name}", markup=False)
 
 
 def add_subparser(subparsers):
