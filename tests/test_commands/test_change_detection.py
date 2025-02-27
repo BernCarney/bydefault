@@ -196,17 +196,51 @@ class TestChangeDetection(TestCase):
 
     def test_scan_directory_no_baseline(self):
         """Test scanning a directory without a baseline."""
+        # Set up local directory for the test
+        (self.base_dir / "local").mkdir(exist_ok=True)
+
+        # Copy a file from default to local with modifications
+        with open(self.base_dir / "local" / "app.conf", "w") as f:
+            f.write("[install]\n")
+            f.write("state = disabled\n")  # Changed from enabled
+            f.write("\n")
+            f.write("[package]\n")
+            f.write("id = test_app\n")
+            f.write("check_for_updates = 2\n")  # Changed from 1
+
+        # Add a new file in local that doesn't exist in default
+        with open(self.base_dir / "local" / "local_only.conf", "w") as f:
+            f.write("[local_stanza]\n")
+            f.write("setting = value\n")
+
         result = scan_directory(self.base_dir)
 
         self.assertEqual(result.ta_path, self.base_dir)
         self.assertTrue(result.is_valid_ta)
         self.assertIsNone(result.error_message)
 
-        # Should have the same changes as test_detect_file_changes_base_only
-        self.assertEqual(len(result.file_changes), 3)
+        # We should have changes between local and default
+        self.assertGreater(len(result.file_changes), 0)
 
-        for change in result.file_changes:
-            self.assertTrue(change.is_new)
+        # Verify app.conf is modified and local_only.conf is added
+        app_conf_changes = [
+            c for c in result.file_changes if c.file_path.name == "app.conf"
+        ]
+        local_only_changes = [
+            c for c in result.file_changes if c.file_path.name == "local_only.conf"
+        ]
+
+        self.assertEqual(len(app_conf_changes), 1)
+        # FileChange doesn't have a change_type attribute, but we can check if it's not marked as new
+        # since modified files shouldn't be marked as new
+        self.assertFalse(app_conf_changes[0].is_new)
+        self.assertTrue(
+            len(app_conf_changes[0].stanza_changes) > 0
+        )  # Should have stanza changes
+
+        self.assertEqual(len(local_only_changes), 1)
+        # For added files, they should be marked as new
+        self.assertTrue(local_only_changes[0].is_new)
 
     def test_error_handling(self):
         """Test error handling for invalid inputs."""

@@ -56,7 +56,6 @@ def cli(ctx: click.Context) -> None:
     This project is under active development.
 
     Planned commands:
-    - scan: Detect and report configuration changes
     - sort: Sort configuration files while maintaining structure
     - merge: Merge local configurations into default
     - bumpver: Update version numbers across TAs
