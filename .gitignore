@@ -42,3 +42,5 @@ coverage.xml
 # Misc
 .DS_Store
 .specstory/
+# test_tas/ - DO NOT COMMIT this directory, but it's needed for testing
+# Contents can be regenerated with ./scripts/create_test_tas.sh

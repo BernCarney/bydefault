@@ -319,13 +319,15 @@ SHOULD_LINEMERGE = true
 MAX_EVENTS = 2000
 EOF
 
-# Add to .gitignore if not already there
-if ! grep -q "test_tas/" .gitignore; then
-    echo "test_tas/" >>.gitignore
+# Add to .git/info/exclude if not already there
+mkdir -p .git/info
+if ! grep -q "test_tas/" .git/info/exclude; then
+    echo "test_tas/" >> .git/info/exclude
+    echo "Added test_tas/ to .git/info/exclude to prevent git tracking"
 fi
 
 echo "Test TAs updated in test_tas/ directory"
-echo "Directory has been added to .gitignore"
+echo "Directory has been added to local git exclude (NOT .gitignore)"
 echo
 echo "Test cases available:"
 echo "- Basic validation"
