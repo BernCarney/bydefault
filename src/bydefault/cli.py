@@ -8,6 +8,7 @@ from rich.theme import Theme
 
 from bydefault import __prog_name__, __version__
 from bydefault.commands.scan import scan_command
+from bydefault.commands.sort import sort_command
 from bydefault.commands.validator import validate_file
 from bydefault.utils.output import (
     CHALKY,
@@ -56,7 +57,6 @@ def cli(ctx: click.Context) -> None:
     This project is under active development.
 
     Planned commands:
-    - sort: Sort configuration files while maintaining structure
     - merge: Merge local configurations into default
     - bumpver: Update version numbers across TAs
     """
@@ -212,6 +212,71 @@ def scan(
         recursive=recursive,
         summary=summary,
         details=details,
+        console=ctx.obj["console"],
+    )
+
+    ctx.exit(exit_code)
+
+
+@cli.command()
+@click.option(
+    "--verbose",
+    is_flag=True,
+    help="Show detailed output",
+)
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    help="Show what would be done without making changes",
+)
+@click.option(
+    "--backup",
+    is_flag=True,
+    help="Create backup before sorting",
+)
+@click.option(
+    "--verify",
+    is_flag=True,
+    help="Verify file structure after sort",
+)
+@click.argument("files", nargs=-1, type=click.Path(exists=True, path_type=Path))
+@click.pass_context
+def sort(
+    ctx: click.Context,
+    verbose: bool,
+    dry_run: bool,
+    backup: bool,
+    verify: bool,
+    files: tuple[Path, ...],
+) -> None:
+    """Sort configuration files maintaining structure and comments.
+
+    The sort command organizes stanzas and settings within Splunk configuration files
+    while preserving comments and structure.
+
+    Arguments:
+    - FILES: One or more configuration files to sort
+    """
+    if not files:
+        ctx.obj["console"].print("[error]Error:[/error] No files specified.")
+        ctx.obj["console"].print("\nUsage: bydefault sort [OPTIONS] FILES...")
+        ctx.obj["console"].print("\nExample usage:")
+        ctx.obj["console"].print("  bydefault sort path/to/props.conf")
+        ctx.obj["console"].print("  bydefault sort --dry-run path/to/*.conf")
+        ctx.obj["console"].print(
+            "  bydefault sort --backup --verify path/to/props.conf"
+        )
+        ctx.exit(1)
+
+    # Convert Paths to strings for the sort_command function
+    files_str = [str(f) for f in files]
+
+    exit_code = sort_command(
+        files=files_str,
+        verbose=verbose,
+        dry_run=dry_run,
+        backup=backup,
+        verify=verify,
         console=ctx.obj["console"],
     )
 
