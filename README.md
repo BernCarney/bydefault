@@ -10,26 +10,26 @@ CLI tools for Splunk 9.2.2 TA development and maintenance.
 
 Currently Implementing:
 
-- **P1: Basic CLI Structure**
+- **P1: Basic CLI Structure** ✓
   - Command-line interface framework
   - Help text and documentation
   - Output formatting templates
   - Error message formatting
   - Verbosity controls
 
-Coming Soon:
-
-- **P2: Basic Validation**
+- **P2: Basic Validation** ✓
   - Core validation rules
   - Validation command structure
   - Validation reporting
   - Error handling
 
-- **P3: File Detection**
+- **P3: File Detection** ✓
   - TA directory validation
   - Change detection and reporting
   - Local/default file comparison
   - Status display system
+
+Coming Soon:
 
 - **P4: Configuration Sorting**
   - Stanza sorting by type and priority
@@ -135,7 +135,7 @@ Choose one of the following installation methods:
    ```bash
     # After restarting your shell
     bydefault --version
-    bydefault, version 0.1.0
+    bydefault, version 0.3.0
    ```
 
 ### Usage
@@ -250,6 +250,6 @@ GNU General Public License v3.0 or later
 
 ## Development Status
 
-Currently implementing Phase 1: Basic CLI Structure
+Currently implementing Phase 4: Configuration Sorting
 
 Visit the [Project Board](https://github.com/users/BernCarney/projects/1/views/1) for detailed task tracking.
