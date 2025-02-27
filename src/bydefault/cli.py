@@ -68,6 +68,7 @@ def cli(ctx: click.Context) -> None:
 @cli.command()
 @click.option(
     "--verbose",
+    "-v",
     is_flag=True,
     help=(
         "Show detailed validation output including file checks, "
@@ -197,6 +198,12 @@ def validate(
     help="Recursively search for TAs in the specified directories",
 )
 @click.option(
+    "-v",
+    "--verbose",
+    is_flag=True,
+    help="Show more detailed output",
+)
+@click.option(
     "-s",
     "--summary",
     is_flag=True,
@@ -214,6 +221,7 @@ def scan(
     paths: tuple[Path, ...],
     baseline: Path,
     recursive: bool,
+    verbose: bool,
     summary: bool,
     details: bool,
 ) -> None:
@@ -249,6 +257,7 @@ def scan(
         paths=path_strings,
         baseline=baseline_string,
         recursive=recursive,
+        verbose=verbose,
         summary=summary,
         details=details,
         console=ctx.obj["console"],
@@ -260,21 +269,25 @@ def scan(
 @cli.command()
 @click.option(
     "--verbose",
+    "-v",
     is_flag=True,
     help="Show detailed output",
 )
 @click.option(
     "--dry-run",
+    "-n",
     is_flag=True,
     help="Show what would be done without making changes",
 )
 @click.option(
     "--backup",
+    "-b",
     is_flag=True,
     help="Create backup before sorting",
 )
 @click.option(
     "--verify",
+    "-c",
     is_flag=True,
     help="Verify file structure after sort",
 )
