@@ -1,9 +1,9 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Function to confirm directory removal
 confirm_cleanup() {
     if [ -d "test_tas" ]; then
-        read -p "test_tas directory exists. Remove and recreate? (y/N) " choice
+        read -r -p "test_tas directory exists. Remove and recreate? (y/N) " choice
         case "$choice" in
         y | Y)
             echo "Removing existing test_tas directory..."
@@ -150,7 +150,7 @@ EOF
 cat >test_tas/TA_valid/default/server.conf <<EOF
 [general]
 serverName = splunk
-pass4SymmKey = $6$random_chars$
+pass4SymmKey = $(< /dev/urandom tr -dc A-Za-z0-9 | head -c 24)
 
 [sslConfig]
 enableSplunkdSSL = true
