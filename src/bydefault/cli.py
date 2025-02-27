@@ -74,9 +74,17 @@ def cli(ctx: click.Context) -> None:
         "stanza counts, and specific validation steps."
     ),
 )
+@click.option(
+    "--recursive",
+    "-r",
+    is_flag=True,
+    help="Recursively scan directories for configuration files.",
+)
 @click.argument("files", nargs=-1, type=click.Path(exists=True, path_type=Path))
 @click.pass_context
-def validate(ctx: click.Context, verbose: bool, files: tuple[Path, ...]) -> None:
+def validate(
+    ctx: click.Context, verbose: bool, recursive: bool, files: tuple[Path, ...]
+) -> None:
     """Verify configuration structure and syntax.
 
     - Non-configuration files will be skipped with a warning.
@@ -85,7 +93,9 @@ def validate(ctx: click.Context, verbose: bool, files: tuple[Path, ...]) -> None
       performs basic checks.
 
     Arguments:
-    - FILES: One or more files or glob patterns to validate.
+    - FILES: One or more files or directories to validate.
+      When directories are specified, only .conf and .meta files will be processed.
+      Use --recursive to include subdirectories.
 
     """
     if not files:
@@ -95,24 +105,53 @@ def validate(ctx: click.Context, verbose: bool, files: tuple[Path, ...]) -> None
         ctx.obj["console"].print("  bydefault validate *.conf")
         ctx.obj["console"].print("  bydefault validate default/*.conf default/*.meta")
         ctx.obj["console"].print("  bydefault validate --verbose path/to/props.conf")
-        ctx.obj["console"].print("  bydefault validate --verbose path/to/props.conf")
+        ctx.obj["console"].print(
+            "  bydefault validate --recursive path/to/ta_directory"
+        )
         ctx.exit(1)
 
     ctx.obj["verbose"] = verbose
 
-    previous_had_error = False
+    # Process files and directories
+    files_to_validate = []
     for file_path in files:
-        # Skip directories in output but still process files within them
         if file_path.is_dir():
             if verbose:
                 ctx.obj["console"].print(
                     f"[title]Processing directory:[/title] [path]{file_path}[/path]"
                 )
-            continue
 
+            # Find all .conf and .meta files in the directory
+            if recursive:
+                conf_files = list(file_path.glob("**/*.conf"))
+                meta_files = list(file_path.glob("**/*.meta"))
+            else:
+                conf_files = list(file_path.glob("*.conf"))
+                meta_files = list(file_path.glob("*.meta"))
+
+            files_to_validate.extend(conf_files)
+            files_to_validate.extend(meta_files)
+        else:
+            files_to_validate.append(file_path)
+
+    if not files_to_validate:
+        ctx.obj["console"].print(
+            "[warning]Warning:[/warning] No configuration files found to validate."
+        )
+        ctx.exit(0)
+
+    previous_had_error = False
+    for file_path in files_to_validate:
         # Add newline if previous file had errors
         if previous_had_error:
             ctx.obj["console"].print()
+
+        # Skip directories (already processed)
+        if file_path.is_dir():
+            continue
+
+        if verbose:
+            ctx.obj["console"].print(f"Validating [path]{file_path}[/path]...")
 
         result = validate_file(
             file_path, verbose=ctx.obj["verbose"], console=ctx.obj["console"]
