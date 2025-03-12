@@ -6,7 +6,7 @@ preserves comment relationships to stanzas and settings.
 
 import re
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 from bydefault.models.sort_models import Comment, Setting, Stanza, StanzaType
 
@@ -39,86 +39,142 @@ class CommentAwareParser:
         self.global_settings: Dict[str, Setting] = {}
         self.pending_comments: List[Comment] = []
 
-    def parse(self) -> Tuple[Dict[str, Stanza], Dict[str, Setting]]:
+    def parse(self):
         """Parse the configuration file.
 
-        This method reads the configuration file and parses its content
-        into a structured format that preserves comments and their
-        associations with stanzas and settings.
-
         Returns:
-            Tuple[Dict[str, Stanza], Dict[str, Setting]]: A tuple containing
-                the stanzas and global settings
-
-        Raises:
-            FileNotFoundError: If the file does not exist
-            PermissionError: If the file cannot be read
-            UnicodeDecodeError: If the file encoding is not supported
+            ParseResult: The parsed result containing stanzas and settings.
         """
         try:
+            stanzas = {}
+            global_settings = {}
+            comments_buffer = []
+            current_stanza = None
+            continued_line = False
+            continued_value = ""
+            continued_key = ""
+            continued_line_num = 0
+
+            # For debugging
+            stanza_types = {}
+
             with open(self.file_path, "r", encoding="utf-8") as f:
-                content = f.readlines()
+                for line_num, line in enumerate(f, 1):
+                    line = line.rstrip("\n")
 
-            # Parse the content
-            for i, line in enumerate(content):
-                line_number = i + 1
+                    # Skip empty lines
+                    if not line.strip():
+                        continue
 
-                # Check for blank lines
-                if self.BLANK_LINE_PATTERN.match(line):
-                    if self.current_stanza:
-                        self.current_stanza.blank_lines_after += 1
-                    continue
+                    # Handle comments, unless we're in a continued line
+                    if line.strip().startswith("#") and not continued_line:
+                        comment = Comment(
+                            content=line.strip(),
+                            line_number=line_num,
+                        )
+                        comments_buffer.append(comment)
+                        continue
 
-                # Check for comments
-                comment_match = self.COMMENT_PATTERN.match(line)
-                if comment_match:
-                    self.pending_comments.append(
-                        Comment(content=comment_match.group(1), line_number=line_number)
-                    )
-                    continue
+                    # Handle stanza headers - [stanza_name], unless we're in a continued line
+                    if (
+                        not continued_line
+                        and line.strip().startswith("[")
+                        and line.strip().endswith("]")
+                    ):
+                        # Extract the stanza name without brackets
+                        stanza_name = line.strip()[1:-1]
 
-                # Check for stanzas
-                stanza_match = self.STANZA_PATTERN.match(line)
-                if stanza_match:
-                    stanza_name = stanza_match.group(1)
-                    stanza_type = self._classify_stanza(stanza_name)
+                        # Classify the stanza type
+                        stanza_type = self._classify_stanza(stanza_name)
 
-                    self.current_stanza = Stanza(
-                        name=stanza_name, type=stanza_type, line_number=line_number
-                    )
+                        # For debugging
+                        stanza_types[stanza_name] = stanza_type
 
-                    # Associate pending comments with this stanza
-                    if self.pending_comments:
-                        self.current_stanza.comments.extend(self.pending_comments)
-                        self.pending_comments = []
+                        # Create a new stanza
+                        stanza = Stanza(
+                            name=stanza_name,
+                            type=stanza_type,
+                            line_number=line_num,
+                        )
 
-                    self.stanzas[stanza_name] = self.current_stanza
-                    continue
+                        # Associate any pending comments with this stanza
+                        for comment in comments_buffer:
+                            comment.associated_with = stanza_name
+                            stanza.comments.append(comment)
+                        comments_buffer = []
 
-                # Check for settings
-                setting_match = self.SETTING_PATTERN.match(line)
-                if setting_match:
-                    key = setting_match.group(1)
-                    value = setting_match.group(2)
+                        stanzas[stanza_name] = stanza
+                        current_stanza = stanza
+                        continue
 
-                    setting = Setting(key=key, value=value, line_number=line_number)
+                    # Check if we're continuing a previous line
+                    if continued_line:
+                        # Append this line to the continued value
+                        continued_value += "\n" + line
 
-                    # Associate pending comments with this setting
-                    if self.pending_comments:
-                        setting.comments.extend(self.pending_comments)
-                        self.pending_comments = []
+                        # Check if this line continues
+                        if line.rstrip().endswith("\\"):
+                            # Remove the trailing backslash for display but keep continuing
+                            continued_value = continued_value.rstrip("\\").rstrip()
+                        else:
+                            # End of continuation - create the setting
+                            setting = Setting(
+                                key=continued_key,
+                                value=continued_value,
+                                line_number=continued_line_num,
+                            )
 
-                    if self.current_stanza:
-                        self.current_stanza.settings[key] = setting
-                    else:
-                        self.global_settings[key] = setting
+                            # Associate comments with this setting
+                            if comments_buffer:
+                                setting.comments.extend(comments_buffer)
+                                comments_buffer = []
 
-            # If there are any pending comments at the end, associate them with the last stanza
-            if self.pending_comments and self.current_stanza:
-                self.current_stanza.comments.extend(self.pending_comments)
-                self.pending_comments = []
+                            if current_stanza:
+                                current_stanza.settings[continued_key] = setting
+                            else:
+                                global_settings[continued_key] = setting
 
-            return self.stanzas, self.global_settings
+                            # Reset continuation
+                            continued_line = False
+                            continued_value = ""
+                            continued_key = ""
+                        continue
+
+                    # Check for settings
+                    setting_match = self.SETTING_PATTERN.match(line)
+                    if setting_match:
+                        key = setting_match.group(1)
+                        value = setting_match.group(2)
+
+                        # Check if the line continues
+                        if value.rstrip().endswith("\\"):
+                            # Start collecting a multi-line value
+                            continued_line = True
+                            continued_key = key
+                            continued_value = value.rstrip("\\").rstrip()
+                            continued_line_num = line_num
+                        else:
+                            # Regular single-line setting
+                            setting = Setting(
+                                key=key, value=value, line_number=line_num
+                            )
+
+                            # Associate pending comments with this setting
+                            if comments_buffer:
+                                setting.comments.extend(comments_buffer)
+                                comments_buffer = []
+
+                            if current_stanza:
+                                current_stanza.settings[key] = setting
+                            else:
+                                global_settings[key] = setting
+
+            # For debugging
+            print("Stanza Types:")
+            for name, typ in stanza_types.items():
+                print(f"  {name}: {typ}")
+
+            return stanzas, global_settings
 
         except (FileNotFoundError, PermissionError, UnicodeDecodeError) as e:
             raise e
@@ -132,15 +188,25 @@ class CommentAwareParser:
         Returns:
             StanzaType: The type of the stanza
         """
+        stanza_type = None
+
         if stanza_name.lower() == "default":
-            return StanzaType.DEFAULT
+            stanza_type = StanzaType.DEFAULT
+        elif stanza_name == "":  # Empty stanza []
+            stanza_type = StanzaType.EMPTY_STANZA
+        elif stanza_name == "*":  # Star stanza [*]
+            stanza_type = StanzaType.STAR_STANZA
         elif "*::" in stanza_name:
-            return StanzaType.GLOBAL_WILDCARD
+            stanza_type = StanzaType.GLOBAL_WILDCARD
+        elif re.search(
+            r"::\*[^\]]+", stanza_name
+        ):  # Wildcard followed by additional characters
+            stanza_type = StanzaType.TYPE_WILDCARD_PREFIX
         elif "::*" in stanza_name:
-            return StanzaType.TYPE_WILDCARD
-        elif "::*-" in stanza_name:
-            return StanzaType.TYPE_WILDCARD_PREFIX
+            stanza_type = StanzaType.TYPE_WILDCARD
         elif "::" in stanza_name:
-            return StanzaType.TYPE_SPECIFIC
+            stanza_type = StanzaType.TYPE_SPECIFIC
         else:
-            return StanzaType.GLOBAL
+            stanza_type = StanzaType.APP_SPECIFIC  # App-specific stanzas like [perfmon]
+
+        return stanza_type

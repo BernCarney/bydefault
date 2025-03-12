@@ -6,7 +6,6 @@ __pycache__/
 .Python
 build/
 develop-eggs/
-dist/
 downloads/
 eggs/
 .eggs/
@@ -41,5 +40,6 @@ coverage.xml
 
 # Misc
 .DS_Store
-test_tas/
 .specstory/
+# test_tas/ - DO NOT COMMIT this directory, but it's needed for testing
+# Contents can be regenerated with ./scripts/create_test_tas.sh

@@ -8,6 +8,7 @@ from rich.theme import Theme
 
 from bydefault import __prog_name__, __version__
 from bydefault.commands.scan import scan_command
+from bydefault.commands.sort import sort_command
 from bydefault.commands.validator import validate_file
 from bydefault.utils.output import (
     CHALKY,
@@ -56,7 +57,6 @@ def cli(ctx: click.Context) -> None:
     This project is under active development.
 
     Planned commands:
-    - sort: Sort configuration files while maintaining structure
     - merge: Merge local configurations into default
     - bumpver: Update version numbers across TAs
     """
@@ -68,15 +68,24 @@ def cli(ctx: click.Context) -> None:
 @cli.command()
 @click.option(
     "--verbose",
+    "-v",
     is_flag=True,
     help=(
         "Show detailed validation output including file checks, "
         "stanza counts, and specific validation steps."
     ),
 )
+@click.option(
+    "--recursive",
+    "-r",
+    is_flag=True,
+    help="Recursively scan directories for configuration files.",
+)
 @click.argument("files", nargs=-1, type=click.Path(exists=True, path_type=Path))
 @click.pass_context
-def validate(ctx: click.Context, verbose: bool, files: tuple[Path, ...]) -> None:
+def validate(
+    ctx: click.Context, verbose: bool, recursive: bool, files: tuple[Path, ...]
+) -> None:
     """Verify configuration structure and syntax.
 
     - Non-configuration files will be skipped with a warning.
@@ -85,7 +94,9 @@ def validate(ctx: click.Context, verbose: bool, files: tuple[Path, ...]) -> None
       performs basic checks.
 
     Arguments:
-    - FILES: One or more files or glob patterns to validate.
+    - FILES: One or more files or directories to validate.
+      When directories are specified, only .conf and .meta files will be processed.
+      Use --recursive to include subdirectories.
 
     """
     if not files:
@@ -95,24 +106,53 @@ def validate(ctx: click.Context, verbose: bool, files: tuple[Path, ...]) -> None
         ctx.obj["console"].print("  bydefault validate *.conf")
         ctx.obj["console"].print("  bydefault validate default/*.conf default/*.meta")
         ctx.obj["console"].print("  bydefault validate --verbose path/to/props.conf")
-        ctx.obj["console"].print("  bydefault validate --verbose path/to/props.conf")
+        ctx.obj["console"].print(
+            "  bydefault validate --recursive path/to/ta_directory"
+        )
         ctx.exit(1)
 
     ctx.obj["verbose"] = verbose
 
-    previous_had_error = False
+    # Process files and directories
+    files_to_validate = []
     for file_path in files:
-        # Skip directories in output but still process files within them
         if file_path.is_dir():
             if verbose:
                 ctx.obj["console"].print(
                     f"[title]Processing directory:[/title] [path]{file_path}[/path]"
                 )
-            continue
 
+            # Find all .conf and .meta files in the directory
+            if recursive:
+                conf_files = list(file_path.glob("**/*.conf"))
+                meta_files = list(file_path.glob("**/*.meta"))
+            else:
+                conf_files = list(file_path.glob("*.conf"))
+                meta_files = list(file_path.glob("*.meta"))
+
+            files_to_validate.extend(conf_files)
+            files_to_validate.extend(meta_files)
+        else:
+            files_to_validate.append(file_path)
+
+    if not files_to_validate:
+        ctx.obj["console"].print(
+            "[warning]Warning:[/warning] No configuration files found to validate."
+        )
+        ctx.exit(0)
+
+    previous_had_error = False
+    for file_path in files_to_validate:
         # Add newline if previous file had errors
         if previous_had_error:
             ctx.obj["console"].print()
+
+        # Skip directories (already processed)
+        if file_path.is_dir():
+            continue
+
+        if verbose:
+            ctx.obj["console"].print(f"Validating [path]{file_path}[/path]...")
 
         result = validate_file(
             file_path, verbose=ctx.obj["verbose"], console=ctx.obj["console"]
@@ -158,6 +198,12 @@ def validate(ctx: click.Context, verbose: bool, files: tuple[Path, ...]) -> None
     help="Recursively search for TAs in the specified directories",
 )
 @click.option(
+    "-v",
+    "--verbose",
+    is_flag=True,
+    help="Show more detailed output",
+)
+@click.option(
     "-s",
     "--summary",
     is_flag=True,
@@ -175,6 +221,7 @@ def scan(
     paths: tuple[Path, ...],
     baseline: Path,
     recursive: bool,
+    verbose: bool,
     summary: bool,
     details: bool,
 ) -> None:
@@ -210,8 +257,78 @@ def scan(
         paths=path_strings,
         baseline=baseline_string,
         recursive=recursive,
+        verbose=verbose,
         summary=summary,
         details=details,
+        console=ctx.obj["console"],
+    )
+
+    ctx.exit(exit_code)
+
+
+@cli.command()
+@click.option(
+    "--verbose",
+    "-v",
+    is_flag=True,
+    help="Show detailed output",
+)
+@click.option(
+    "--dry-run",
+    "-n",
+    is_flag=True,
+    help="Show what would be done without making changes",
+)
+@click.option(
+    "--backup",
+    "-b",
+    is_flag=True,
+    help="Create backup before sorting",
+)
+@click.option(
+    "--verify",
+    "-c",
+    is_flag=True,
+    help="Verify file structure after sort",
+)
+@click.argument("files", nargs=-1, type=click.Path(exists=True, path_type=Path))
+@click.pass_context
+def sort(
+    ctx: click.Context,
+    verbose: bool,
+    dry_run: bool,
+    backup: bool,
+    verify: bool,
+    files: tuple[Path, ...],
+) -> None:
+    """Sort configuration files maintaining structure and comments.
+
+    The sort command organizes stanzas and settings within Splunk configuration files
+    while preserving comments and structure.
+
+    Arguments:
+    - FILES: One or more configuration files to sort
+    """
+    if not files:
+        ctx.obj["console"].print("[error]Error:[/error] No files specified.")
+        ctx.obj["console"].print("\nUsage: bydefault sort [OPTIONS] FILES...")
+        ctx.obj["console"].print("\nExample usage:")
+        ctx.obj["console"].print("  bydefault sort path/to/props.conf")
+        ctx.obj["console"].print("  bydefault sort --dry-run path/to/*.conf")
+        ctx.obj["console"].print(
+            "  bydefault sort --backup --verify path/to/props.conf"
+        )
+        ctx.exit(1)
+
+    # Convert Paths to strings for the sort_command function
+    files_str = [str(f) for f in files]
+
+    exit_code = sort_command(
+        files=files_str,
+        verbose=verbose,
+        dry_run=dry_run,
+        backup=backup,
+        verify=verify,
         console=ctx.obj["console"],
     )
 

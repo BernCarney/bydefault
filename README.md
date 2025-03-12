@@ -216,6 +216,18 @@ Update TA versions:
     ruff format .
     ```
 
+### Test Environment
+
+The project uses a generated Splunk TA (Technology Add-on) test environment for validation and testing. To set up this environment:
+
+```bash
+$ ./scripts/create_test_tas.sh
+```
+
+This creates a `test_tas` directory with various test configurations. The directory is excluded from Git tracking via `.git/info/exclude` rather than `.gitignore` to maintain visibility in Cursor IDE.
+
+**Important:** Do not commit the `test_tas` directory to the repository.
+
 ## Project Structure
 
 ```bash

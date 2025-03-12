@@ -87,3 +87,27 @@ def format_error(message: str, context: str | None = None) -> str:
     if context:
         return f"Error: {message}\n  {context}"
     return f"Error: {message}"
+
+
+def format_success(message: str) -> str:
+    """Format a success message.
+
+    Args:
+        message: The success message
+
+    Returns:
+        str: Formatted success message
+    """
+    return f"Success: {message}"
+
+
+def format_warning(message: str) -> str:
+    """Format a warning message.
+
+    Args:
+        message: The warning message
+
+    Returns:
+        str: Formatted warning message
+    """
+    return f"Warning: {message}"

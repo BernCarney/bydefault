@@ -22,6 +22,7 @@ def scan_command(
     paths: List[str],
     baseline: Optional[str] = None,
     recursive: bool = False,
+    verbose: bool = False,
     summary: bool = False,
     details: bool = True,
     console: Optional[Console] = None,
@@ -36,6 +37,7 @@ def scan_command(
         paths: List of paths to scan
         baseline: Optional baseline path to compare against (advanced use case)
         recursive: Whether to recursively search for TAs in the specified paths
+        verbose: Whether to show more detailed output
         summary: Whether to show only a summary of changes
         details: Whether to show detailed changes
         console: Optional Rich console instance to use for output (uses custom theme if provided)
