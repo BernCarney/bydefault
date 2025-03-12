@@ -30,11 +30,54 @@ specific_setting1 = value1
 
 
 @pytest.fixture
+def test_conf_with_global_stanzas():
+    """Return test configuration content with global stanzas."""
+    return """# Global comment
+setting1 = value1
+setting2 = value2
+
+[default]
+# Default stanza comment
+default_setting2 = value2
+default_setting1 = value1
+
+[perfmon]
+# Perfmon stanza comment
+interval = 60
+disabled = 0
+
+[sourcetype]
+# Sourcetype stanza comment
+TRANSFORMS-something = something-else
+REPORT-base = perfmon-report
+
+[type::*]
+# Wildcard stanza comment
+wildcard_setting2 = value2
+wildcard_setting1 = value1
+
+[type::specific]
+# Specific stanza comment
+specific_setting2 = value2
+specific_setting1 = value1
+"""
+
+
+@pytest.fixture
 def test_conf_file(tmp_path, test_conf_content):
     """Create a test configuration file."""
     file_path = tmp_path / "test.conf"
     with open(file_path, "w", encoding="utf-8") as f:
         f.write(test_conf_content)
+    return file_path
+
+
+@pytest.fixture
+def test_conf_file_with_global_stanzas(tmp_path, test_conf_with_global_stanzas):
+    """Create a test configuration file with global stanzas."""
+    file_path = tmp_path / "test_with_global.conf"
+    with open(file_path, "w", encoding="utf-8") as f:
+        f.write(test_conf_with_global_stanzas)
     return file_path
 
 
@@ -162,3 +205,41 @@ def test_config_sorter_settings_sorted(test_conf_file):
     assert specific_section.find("specific_setting1") < specific_section.find(
         "specific_setting2"
     )
+
+
+def test_config_sorter_preserves_global_stanzas(test_conf_file_with_global_stanzas):
+    """Test that global stanzas like [perfmon] are preserved in sorted output."""
+    sorter = ConfigSorter(test_conf_file_with_global_stanzas)
+    sorter.parse()
+    sorter.sort()
+    sorter.write()
+
+    # Read the file content after writing
+    with open(test_conf_file_with_global_stanzas, "r", encoding="utf-8") as f:
+        after_content = f.read()
+
+    # Check that global stanzas are present in the sorted file
+    assert "[perfmon]" in after_content
+    assert "# Perfmon stanza comment" in after_content
+    assert "interval = 60" in after_content
+    assert "disabled = 0" in after_content
+
+    assert "[sourcetype]" in after_content
+    assert "# Sourcetype stanza comment" in after_content
+
+    # Verify stanza order
+    stanza_order = [
+        line.strip()
+        for line in after_content.split("\n")
+        if line.strip().startswith("[")
+    ]
+
+    # Verify order is: 1. default, 2. global stanzas, 3. type-specific stanzas
+    assert stanza_order[0] == "[default]"
+
+    # Global stanzas should be alphabetically ordered
+    assert "[perfmon]" in stanza_order[1:3]
+    assert "[sourcetype]" in stanza_order[1:3]
+
+    # Type-specific stanzas come after global stanzas
+    assert stanza_order[-2:] == ["[type::*]", "[type::specific]"]

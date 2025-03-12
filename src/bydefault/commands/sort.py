@@ -225,3 +225,10 @@ def display_detailed_results(console: Console, sort_result: dict) -> None:
     console.print(
         f"  ✓ {sort_result.get('comments_preserved', 0)} comment blocks maintained"
     )
+
+    # Display warnings if any
+    warnings = sort_result.get("warnings", [])
+    if warnings:
+        console.print("\nWarnings:")
+        for warning in warnings:
+            console.print(format_warning(f"  ! {warning}"))

@@ -63,15 +63,50 @@ class SortedConfigWriter:
         # Clear the output lines
         self.output_lines = []
 
-        # Write global settings first
+        # Write global settings first (outside of any stanza)
         if self.global_settings:
             self._write_global_settings()
             self.output_lines.append("\n")
 
-        # Write stanzas in order of priority
+        # Write stanzas in order of priority: [] -> [*] -> [default] -> ...
+        self._write_empty_stanza()
+        self._write_star_stanza()
         self._write_default_stanza()
+        self._write_app_specific_stanzas()
         self._write_global_wildcard_stanzas()
         self._write_type_specific_stanzas()
+
+    def _write_empty_stanza(self) -> None:
+        """Write the empty stanza [].
+
+        This method writes the empty stanza to the output lines if it exists.
+        """
+        # Find the empty stanza
+        empty_stanza = None
+        for stanza in self.stanzas.values():
+            if stanza.type == StanzaType.EMPTY_STANZA:
+                empty_stanza = stanza
+                break
+
+        # Write the empty stanza if it exists
+        if empty_stanza:
+            self._write_stanza(empty_stanza)
+
+    def _write_star_stanza(self) -> None:
+        """Write the star stanza [*].
+
+        This method writes the star stanza to the output lines if it exists.
+        """
+        # Find the star stanza
+        star_stanza = None
+        for stanza in self.stanzas.values():
+            if stanza.type == StanzaType.STAR_STANZA:
+                star_stanza = stanza
+                break
+
+        # Write the star stanza if it exists
+        if star_stanza:
+            self._write_stanza(star_stanza)
 
     def _write_global_settings(self) -> None:
         """Write the global settings.
@@ -87,7 +122,7 @@ class SortedConfigWriter:
                 self.output_lines.append(f"# {comment.content}\n")
 
             # Write the setting
-            self.output_lines.append(f"{key} = {setting.value}\n")
+            self._write_setting(setting, self)
 
     def _write_default_stanza(self) -> None:
         """Write the default stanza.
@@ -101,8 +136,27 @@ class SortedConfigWriter:
                 default_stanza = stanza
                 break
 
+        # Write the default stanza if it exists
         if default_stanza:
             self._write_stanza(default_stanza)
+
+    def _write_app_specific_stanzas(self) -> None:
+        """Write the app-specific stanzas.
+
+        This method writes app-specific stanzas (like [perfmon]) to the output lines.
+        """
+        # Find all app-specific stanzas
+        app_specific_stanzas = []
+        for stanza in self.stanzas.values():
+            if stanza.type == StanzaType.APP_SPECIFIC:
+                app_specific_stanzas.append(stanza)
+
+        # Sort app-specific stanzas by name
+        app_specific_stanzas.sort(key=lambda s: s.name)
+
+        # Write each app-specific stanza
+        for stanza in app_specific_stanzas:
+            self._write_stanza(stanza)
 
     def _write_global_wildcard_stanzas(self) -> None:
         """Write the global wildcard stanzas.
@@ -191,8 +245,37 @@ class SortedConfigWriter:
                 self.output_lines.append(f"# {comment.content}\n")
 
             # Write the setting
-            self.output_lines.append(f"{key} = {setting.value}\n")
+            self._write_setting(setting, self)
 
         # Add blank lines after the stanza
         for _ in range(stanza.blank_lines_after):
             self.output_lines.append("\n")
+
+    def _write_setting(self, setting: Setting, _):
+        """Write a setting to the output lines.
+
+        Args:
+            setting: The setting to write
+            _: Unused parameter for compatibility
+        """
+        # Write any comments associated with the setting
+        for comment in setting.comments:
+            self.output_lines.append(f"{comment.content}\n")
+
+        # Check if the value contains newlines, which indicates a multi-line value
+        if "\n" in setting.value:
+            # Split the value by newlines and join with backslashes
+            lines = setting.value.split("\n")
+            for i, line in enumerate(lines):
+                if i == 0:
+                    # First line with setting key
+                    self.output_lines.append(f"{setting.key} = {line} \\\n")
+                elif i == len(lines) - 1:
+                    # Last line without backslash
+                    self.output_lines.append(f"{line}\n")
+                else:
+                    # Middle lines with backslashes
+                    self.output_lines.append(f"{line} \\\n")
+        else:
+            # Regular single-line setting
+            self.output_lines.append(f"{setting.key} = {setting.value}\n")

@@ -15,8 +15,15 @@ class StanzaType(Enum):
     This enum defines the types of stanzas for sorting purposes.
     """
 
-    GLOBAL = auto()  # Global settings (no stanza header)
+    GLOBAL = (
+        auto()
+    )  # Global settings with no stanza header (settings at the top of the file)
+    EMPTY_STANZA = auto()  # Empty stanza [] - another form of global settings
+    STAR_STANZA = auto()  # Star stanza [*] - another form of global settings
     DEFAULT = auto()  # Default stanza [default]
+    APP_SPECIFIC = (
+        auto()
+    )  # App-specific stanzas with no type specifier (e.g., [perfmon], [sourcetype])
     GLOBAL_WILDCARD = auto()  # Global wildcard stanzas [*::attribute]
     TYPE_WILDCARD = auto()  # Type wildcard stanzas [type::*]
     TYPE_WILDCARD_PREFIX = auto()  # Type wildcard prefix stanzas [type::*-attribute]

@@ -80,6 +80,7 @@ class ConfigSorter:
             "default_stanza_position": 0,
             "wildcard_stanzas": {},
             "specific_stanzas_groups": [],
+            "warnings": [],
         }
 
         # Sort global settings alphabetically
@@ -97,16 +98,23 @@ class ConfigSorter:
 
         # Collect and categorize stanzas for sorting
         default_stanza = None
+        empty_stanza = None
+        star_stanza = None
         global_wildcard_stanzas = {}
         type_wildcard_stanzas = {}
         type_wildcard_prefix_stanzas = {}
         type_specific_stanzas = {}
+        app_specific_stanzas = {}
 
         # Group stanzas by type
         for name, stanza in self.stanzas.items():
             if stanza.type == StanzaType.DEFAULT:
                 default_stanza = stanza
                 result["default_stanza_found"] = True
+            elif stanza.type == StanzaType.EMPTY_STANZA:
+                empty_stanza = stanza
+            elif stanza.type == StanzaType.STAR_STANZA:
+                star_stanza = stanza
             elif stanza.type == StanzaType.GLOBAL_WILDCARD:
                 global_wildcard_stanzas[name] = stanza
             elif stanza.type == StanzaType.TYPE_WILDCARD:
@@ -115,6 +123,23 @@ class ConfigSorter:
                 type_wildcard_prefix_stanzas[name] = stanza
             elif stanza.type == StanzaType.TYPE_SPECIFIC:
                 type_specific_stanzas[name] = stanza
+            elif stanza.type == StanzaType.APP_SPECIFIC:
+                app_specific_stanzas[name] = stanza
+
+        # Check for multiple global stanza types and issue warning if needed
+        global_stanza_types = []
+        if len(self.global_settings) > 0:  # Global settings outside stanzas
+            global_stanza_types.append("*")
+        if empty_stanza is not None:
+            global_stanza_types.append("[]")
+        if star_stanza is not None:
+            global_stanza_types.append("[*]")
+        if default_stanza is not None:
+            global_stanza_types.append("[default]")
+
+        if len(global_stanza_types) > 1:
+            warning_msg = f"Multiple global stanza types detected: {', '.join(global_stanza_types)}. This may cause unexpected behavior in Splunk."
+            result["warnings"].append(warning_msg)
 
         # Sort settings within each stanza
         for stanza in self.stanzas.values():
@@ -132,12 +157,31 @@ class ConfigSorter:
         # Create a new ordered stanzas dictionary
         ordered_stanzas = {}
 
-        # 1. Default stanza
+        # Order: * (settings outside stanzas) -> [] -> [*] -> [default]
+        # handled by the SortedConfigWriter
+
+        # 1. Empty stanza []
+        if empty_stanza:
+            ordered_stanzas[empty_stanza.name] = empty_stanza
+            result["stanzas_reordered"] += 1
+
+        # 2. Star stanza [*]
+        if star_stanza:
+            ordered_stanzas[star_stanza.name] = star_stanza
+            result["stanzas_reordered"] += 1
+
+        # 3. Default stanza
         if default_stanza:
             ordered_stanzas[default_stanza.name] = default_stanza
-            result["default_stanza_position"] = 0
+            result["default_stanza_position"] = len(ordered_stanzas) - 1
 
-        # 2. Global wildcard stanzas
+        # 4. App-specific stanzas (like [perfmon], [sourcetype], etc.)
+        if app_specific_stanzas:
+            for name in sorted(app_specific_stanzas.keys()):
+                ordered_stanzas[name] = app_specific_stanzas[name]
+                result["stanzas_reordered"] += 1
+
+        # 5. Global wildcard stanzas
         if global_wildcard_stanzas:
             for name in sorted(global_wildcard_stanzas.keys()):
                 ordered_stanzas[name] = global_wildcard_stanzas[name]
@@ -156,7 +200,7 @@ class ConfigSorter:
         sorted_type_groups = sorted(type_groups.keys())
         result["specific_stanzas_groups"] = sorted_type_groups
 
-        # 3. For each type group, add:
+        # 6. For each type group, add:
         #    a. Type wildcard stanzas
         #    b. Type wildcard prefix stanzas
         #    c. Type specific stanzas
