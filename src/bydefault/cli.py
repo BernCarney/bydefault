@@ -7,7 +7,6 @@ from rich.console import Console
 from rich.theme import Theme
 
 from bydefault import __prog_name__, __version__
-from bydefault.commands.merge import merge_command
 from bydefault.commands.scan import scan_command
 from bydefault.commands.sort import sort_command
 from bydefault.commands.validator import validate_file
@@ -362,7 +361,15 @@ def sort(
         "replaces default stanzas with local ones"
     ),
 )
-@click.argument("ta_path", type=click.Path(exists=True, path_type=Path))
+@click.option(
+    "--recursive",
+    "-r",
+    is_flag=True,
+    help="Recursively search for TAs in the specified directories",
+)
+@click.argument(
+    "paths", nargs=-1, type=click.Path(exists=True, path_type=Path), required=True
+)
 @click.pass_context
 def merge(
     ctx: click.Context,
@@ -370,7 +377,8 @@ def merge(
     dry_run: bool,
     no_backup: bool,
     mode: str,
-    ta_path: Path,
+    recursive: bool,
+    paths: tuple[Path, ...],
 ) -> None:
     """Merge changes from local directory into default directory.
 
@@ -380,28 +388,35 @@ def merge(
     By default, a backup is created unless --no-backup is specified.
 
     Arguments:
-    - TA_PATH: Path to the TA directory containing local and default subdirectories
+    - PATHS: One or more paths to Splunk TA directories
+      (or parent directories with --recursive)
 
     """
-    if not ta_path:
-        ctx.obj["console"].print("[error]Error:[/error] No TA path specified.")
-        ctx.obj["console"].print("\nUsage: bydefault merge [OPTIONS] TA_PATH")
+    if not paths:
+        ctx.obj["console"].print("[error]Error:[/error] No paths specified.")
+        ctx.obj["console"].print("\nUsage: bydefault merge [OPTIONS] PATHS...")
         ctx.obj["console"].print("\nExample usage:")
         ctx.obj["console"].print("  bydefault merge path/to/ta")
         ctx.obj["console"].print("  bydefault merge --verbose path/to/ta")
         ctx.obj["console"].print("  bydefault merge --dry-run path/to/ta")
         ctx.obj["console"].print("  bydefault merge --mode replace path/to/ta")
+        ctx.obj["console"].print("  bydefault merge -r parent/directory/with/tas")
         ctx.exit(1)
 
-    # Run the merge command
-    exit_code = merge_command(
-        ta_path=ta_path,
+    # Import here to avoid circular import issues
+    from bydefault.commands.merge import merge_multiple_tas
+
+    # Use the new function to handle multiple TAs
+    exit_code = merge_multiple_tas(
+        paths=list(paths),
         verbose=verbose,
         dry_run=dry_run,
         no_backup=no_backup,
         mode=mode,
+        recursive=recursive,
         console=ctx.obj["console"],
     )
+
     ctx.exit(exit_code)
 
 

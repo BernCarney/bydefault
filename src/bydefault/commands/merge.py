@@ -6,14 +6,97 @@ structure and comments.
 """
 
 from pathlib import Path
-from typing import Optional
+from typing import List, Optional
 
 from rich.console import Console
 
 from bydefault.models.merge_models import MergeMode, MergeResult
 from bydefault.utils.backup import create_backup
 from bydefault.utils.merge_utils import ConfigMerger
-from bydefault.utils.scanner import is_valid_ta
+from bydefault.utils.scanner import find_tas, is_valid_ta
+
+
+def merge_multiple_tas(
+    paths: List[Path],
+    verbose: bool = False,
+    dry_run: bool = False,
+    no_backup: bool = False,
+    mode: str = "merge",
+    recursive: bool = False,
+    console: Optional[Console] = None,
+) -> int:
+    """Merge local configurations into default directory for multiple TAs.
+
+    Handles finding and processing multiple TA directories, including recursive discovery.
+
+    Args:
+        paths: List of paths to process (TA directories or parent directories)
+        verbose: Whether to show detailed output
+        dry_run: Show what would be done without making changes
+        no_backup: Skip creating backup (backup is created by default)
+        mode: How to handle local changes ('merge' or 'replace')
+        recursive: Whether to recursively search for TAs in the directories
+        console: Console for output
+
+    Returns:
+        int: Exit code (0 for success, non-zero for errors)
+    """
+    if console is None:
+        console = Console()
+
+    # Track if there were any errors
+    exit_code = 0
+
+    # Process each TA path
+    all_tas = []
+    for path in paths:
+        if is_valid_ta(path):
+            all_tas.append(path)
+        elif recursive:
+            try:
+                found_tas = find_tas(path, recursive=recursive)
+                all_tas.extend(found_tas)
+            except Exception as e:
+                console.print(
+                    f"[bold red]Error[/bold red]: Error scanning {path}: {str(e)}"
+                )
+                exit_code = 1
+        else:
+            console.print(
+                f"[bold yellow]Warning[/bold yellow]: {path} is not a valid Splunk TA. "
+                "Use --recursive to search subdirectories."
+            )
+
+    if not all_tas:
+        console.print(
+            "[bold red]Error[/bold red]: No valid Splunk TAs found in the specified paths"
+        )
+        return 1
+
+    # Report number of TAs found when processing multiple paths
+    if len(all_tas) > 1 or recursive:
+        console.print(f"Found {len(all_tas)} Splunk TA directories to process")
+
+    # Process each TA
+    for ta_path in all_tas:
+        if len(all_tas) > 1:
+            console.print(f"\nProcessing: {ta_path}")
+
+        # Run the merge command for this TA
+        ta_exit_code = merge_command(
+            ta_path=ta_path,
+            verbose=verbose,
+            dry_run=dry_run,
+            no_backup=no_backup,
+            mode=mode,
+            console=console,
+        )
+
+        # Update exit code if there was an error
+        if ta_exit_code != 0:
+            exit_code = ta_exit_code
+
+    return exit_code
 
 
 def merge_command(
