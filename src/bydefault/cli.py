@@ -7,6 +7,7 @@ from rich.console import Console
 from rich.theme import Theme
 
 from bydefault import __prog_name__, __version__
+from bydefault.commands.merge import merge_command
 from bydefault.commands.scan import scan_command
 from bydefault.commands.sort import sort_command
 from bydefault.commands.validator import validate_file
@@ -57,7 +58,6 @@ def cli(ctx: click.Context) -> None:
     This project is under active development.
 
     Planned commands:
-    - merge: Merge local configurations into default
     - bumpver: Update version numbers across TAs
     """
     # Initialize shared console
@@ -332,6 +332,76 @@ def sort(
         console=ctx.obj["console"],
     )
 
+    ctx.exit(exit_code)
+
+
+@cli.command()
+@click.option(
+    "--verbose",
+    "-v",
+    is_flag=True,
+    help="Show detailed output",
+)
+@click.option(
+    "--dry-run",
+    "-n",
+    is_flag=True,
+    help="Show what would be done without making changes",
+)
+@click.option(
+    "--no-backup",
+    is_flag=True,
+    help="Skip creating backup before merging (backup is created by default)",
+)
+@click.option(
+    "--mode",
+    type=click.Choice(["merge", "replace"], case_sensitive=False),
+    default="merge",
+    help=(
+        "Merge mode: 'merge' combines settings, 'replace' completely "
+        "replaces default stanzas with local ones"
+    ),
+)
+@click.argument("ta_path", type=click.Path(exists=True, path_type=Path))
+@click.pass_context
+def merge(
+    ctx: click.Context,
+    verbose: bool,
+    dry_run: bool,
+    no_backup: bool,
+    mode: str,
+    ta_path: Path,
+) -> None:
+    """Merge changes from local directory into default directory.
+
+    Takes changes from the 'local' directory in a TA and merges them into
+    the 'default' directory, preserving structure and comments.
+
+    By default, a backup is created unless --no-backup is specified.
+
+    Arguments:
+    - TA_PATH: Path to the TA directory containing local and default subdirectories
+
+    """
+    if not ta_path:
+        ctx.obj["console"].print("[error]Error:[/error] No TA path specified.")
+        ctx.obj["console"].print("\nUsage: bydefault merge [OPTIONS] TA_PATH")
+        ctx.obj["console"].print("\nExample usage:")
+        ctx.obj["console"].print("  bydefault merge path/to/ta")
+        ctx.obj["console"].print("  bydefault merge --verbose path/to/ta")
+        ctx.obj["console"].print("  bydefault merge --dry-run path/to/ta")
+        ctx.obj["console"].print("  bydefault merge --mode replace path/to/ta")
+        ctx.exit(1)
+
+    # Run the merge command
+    exit_code = merge_command(
+        ta_path=ta_path,
+        verbose=verbose,
+        dry_run=dry_run,
+        no_backup=no_backup,
+        mode=mode,
+        console=ctx.obj["console"],
+    )
     ctx.exit(exit_code)
 
 
