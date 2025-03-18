@@ -13,16 +13,18 @@ The `merge` command combines changes from Splunk TA's `local` directory into the
 - Comprehensive change tracking and reporting
 - Dry-run capability for previewing changes
 - Integration with ConfigSorter for maintaining sorting order
+- Support for processing multiple TAs in a single command
+- Recursive TA directory discovery
 
 ## Usage
 
 ```bash
-bydefault merge [OPTIONS] TA_PATH
+bydefault merge [OPTIONS] PATHS...
 ```
 
 ### Arguments
 
-- `TA_PATH`: Path to the Splunk TA directory containing local and default subdirectories
+- `PATHS`: One or more paths to Splunk TA directories (or parent directories with --recursive)
 
 ### Options
 
@@ -30,6 +32,7 @@ bydefault merge [OPTIONS] TA_PATH
 - `-n, --dry-run`: Show what would be done without making changes
 - `--no-backup`: Skip creating backup (backup is created by default)
 - `--mode [merge|replace]`: How to handle local changes (default: merge)
+- `-r, --recursive`: Recursively search for TAs in the specified directories
 - `--help`: Show help message and exit
 
 ## Examples
@@ -66,13 +69,29 @@ To merge changes without creating a backup:
 bydefault merge --no-backup path/to/ta
 ```
 
+### Process Multiple TAs
+
+To merge changes in multiple TAs:
+
+```bash
+bydefault merge path/to/ta1 path/to/ta2 path/to/ta3
+```
+
+### Recursive Discovery
+
+To find and process all TAs in a directory:
+
+```bash
+bydefault merge --recursive parent/directory/with/tas
+```
+
 ## How It Works
 
 ### Merge Modes
 
 The merge command supports two operation modes:
 
-1. **Merge Mode (default)**:
+1. **Merge Mode (default)**: 
    - Preserves the structure of default files
    - Updates values from local
    - Keeps default settings not present in local
@@ -88,15 +107,16 @@ The merge command supports two operation modes:
 
 The merge command follows these steps:
 
-1. **Validation**: Verifies the TA directory structure
-2. **Backup**: Creates a timestamped backup of the default directory (unless disabled)
-3. **Analysis**: Identifies configuration files in local directory
-4. **Processing**: For each file:
+1. **TA Discovery**: Finds valid TA directories in the specified paths
+2. **Validation**: Verifies each TA directory structure
+3. **Backup**: Creates a timestamped backup of each default directory (unless disabled)
+4. **Analysis**: Identifies configuration files in local directory
+5. **Processing**: For each file:
    - Parses both local and default versions
    - Applies the selected merge strategy
    - Tracks changes at stanza and setting levels
-5. **Output**: Writes merged configurations to default directory (in non-dry-run mode)
-6. **Reporting**: Displays summary or detailed report of changes
+6. **Output**: Writes merged configurations to default directory (in non-dry-run mode)
+7. **Reporting**: Displays summary or detailed report of changes
 
 ### Content Preservation
 
@@ -157,9 +177,8 @@ git commit -m "feat: merge local changes to default"
 When handling multiple TAs with similar changes:
 
 ```bash
-# For each TA:
-bydefault merge --verbose path/to/ta1
-bydefault merge --verbose path/to/ta2
+# Process all TAs in a directory:
+bydefault merge --recursive path/to/tas
 ```
 
 ### For Release Preparation
@@ -176,7 +195,7 @@ bydefault validate path/to/ta/default/*.conf
 
 The merge command uses several components:
 
-- `merge.py`: Main command implementation
+- `merge.py`: Main command implementation 
 - `merge_models.py`: Data models for merge operations
 - `merge_utils.py`: Core merging functionality
 - `backup.py`: Backup creation utility
@@ -200,6 +219,7 @@ Key classes and models:
 6. Consider the implications of each merge mode:
    - `merge`: Safer, preserves more content
    - `replace`: Complete replacement, may remove settings
+7. Use `--recursive` for batch processing multiple TAs in a directory
 
 ## Notes
 
