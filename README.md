@@ -29,19 +29,123 @@ Currently Implementing:
   - Local/default file comparison
   - Status display system
 
-Coming Soon:
-
-- **P4: Configuration Sorting**
+- **P4: Configuration Sorting** ✓
   - Stanza sorting by type and priority
   - Setting organization within stanzas
   - Structure and comment preservation
   - Format maintenance
 
-- **P5: Configuration Merging**
+- **P5: Configuration Merging** ✓
   - Local to default file merging
   - Conflict detection and resolution
   - Format and structure preservation
   - Backup mechanisms
+
+Coming Soon:
+
+- **P6: Version Management**
+  - Bump version numbers
+  - Tag releases
+  - Create release notes
+
+## Command Documentation
+
+### validate
+
+Validates Splunk configuration files for syntax errors and structural issues.
+
+```bash
+bydefault validate [OPTIONS] FILES...
+```
+
+Options:
+
+- `--verbose, -v` - Show detailed validation output
+- `--recursive, -r` - Recursively scan directories for configuration files
+
+Example:
+
+```bash
+bydefault validate default/*.conf
+default/props.conf ✓
+default/inputs.conf ✓
+default/transforms.conf ✗
+  Line 15: Invalid stanza format
+```
+
+### scan
+
+Scans Splunk TA directories to detect configuration changes between local and default.
+
+```bash
+bydefault scan [OPTIONS] PATHS...
+```
+
+Options:
+
+- `--baseline, -b` - Baseline TA to compare against
+- `--recursive, -r` - Recursively search for TAs in directories
+- `--verbose, -v` - Show more detailed output
+- `--summary, -s` - Show only a summary of changes
+- `--details, -d` - Show detailed changes (default)
+
+Example:
+
+```bash
+bydefault scan path/to/ta
+TA-example:
+  Changes detected: 3 files modified, 1 file added
+  Modified: local/props.conf
+  Modified: local/transforms.conf
+  Modified: local/macros.conf
+  Added: local/indexes.conf
+```
+
+### sort
+
+Sorts stanzas and settings in Splunk configuration files while preserving structure and comments.
+
+```bash
+bydefault sort [OPTIONS] FILES...
+```
+
+Options:
+
+- `--verbose, -v` - Show detailed output
+- `--dry-run, -n` - Show what would be done without making changes
+- `--backup, -b` - Create backup before sorting
+- `--verify, -c` - Verify file structure after sort
+
+Example:
+
+```bash
+bydefault sort --backup default/props.conf
+Sorted default/props.conf (backup created)
+```
+
+### merge
+
+Merges changes from Splunk TA's local directory into the default directory while preserving structure and comments.
+
+```bash
+bydefault merge [OPTIONS] PATHS...
+```
+
+Options:
+
+- `--verbose, -v` - Show detailed output
+- `--dry-run, -n` - Show what would be done without making changes
+- `--no-backup` - Skip creating backup (backup is created by default)
+- `--mode` - How to handle local changes (`merge` or `replace`, default: `merge`)
+- `--recursive, -r` - Recursively search for TAs in the specified directories
+
+Example:
+
+```bash
+bydefault merge path/to/ta
+Created backup: path/to/ta/default.20240317_123456.bak
+Merge completed successfully!
+```
 
 ## References
 
@@ -221,7 +325,7 @@ Update TA versions:
 The project uses a generated Splunk TA (Technology Add-on) test environment for validation and testing. To set up this environment:
 
 ```bash
-$ ./scripts/create_test_tas.sh
+./scripts/create_test_tas.sh
 ```
 
 This creates a `test_tas` directory with various test configurations. The directory is excluded from Git tracking via `.git/info/exclude` rather than `.gitignore` to maintain visibility in Cursor IDE.

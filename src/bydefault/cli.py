@@ -57,7 +57,6 @@ def cli(ctx: click.Context) -> None:
     This project is under active development.
 
     Planned commands:
-    - merge: Merge local configurations into default
     - bumpver: Update version numbers across TAs
     """
     # Initialize shared console
@@ -329,6 +328,92 @@ def sort(
         dry_run=dry_run,
         backup=backup,
         verify=verify,
+        console=ctx.obj["console"],
+    )
+
+    ctx.exit(exit_code)
+
+
+@cli.command()
+@click.option(
+    "--verbose",
+    "-v",
+    is_flag=True,
+    help="Show detailed output",
+)
+@click.option(
+    "--dry-run",
+    "-n",
+    is_flag=True,
+    help="Show what would be done without making changes",
+)
+@click.option(
+    "--no-backup",
+    is_flag=True,
+    help="Skip creating backup before merging (backup is created by default)",
+)
+@click.option(
+    "--mode",
+    type=click.Choice(["merge", "replace"], case_sensitive=False),
+    default="merge",
+    help=(
+        "Merge mode: 'merge' combines settings, 'replace' completely "
+        "replaces default stanzas with local ones"
+    ),
+)
+@click.option(
+    "--recursive",
+    "-r",
+    is_flag=True,
+    help="Recursively search for TAs in the specified directories",
+)
+@click.argument(
+    "paths", nargs=-1, type=click.Path(exists=True, path_type=Path), required=True
+)
+@click.pass_context
+def merge(
+    ctx: click.Context,
+    verbose: bool,
+    dry_run: bool,
+    no_backup: bool,
+    mode: str,
+    recursive: bool,
+    paths: tuple[Path, ...],
+) -> None:
+    """Merge changes from local directory into default directory.
+
+    Takes changes from the 'local' directory in a TA and merges them into
+    the 'default' directory, preserving structure and comments.
+
+    By default, a backup is created unless --no-backup is specified.
+
+    Arguments:
+    - PATHS: One or more paths to Splunk TA directories
+      (or parent directories with --recursive)
+
+    """
+    if not paths:
+        ctx.obj["console"].print("[error]Error:[/error] No paths specified.")
+        ctx.obj["console"].print("\nUsage: bydefault merge [OPTIONS] PATHS...")
+        ctx.obj["console"].print("\nExample usage:")
+        ctx.obj["console"].print("  bydefault merge path/to/ta")
+        ctx.obj["console"].print("  bydefault merge --verbose path/to/ta")
+        ctx.obj["console"].print("  bydefault merge --dry-run path/to/ta")
+        ctx.obj["console"].print("  bydefault merge --mode replace path/to/ta")
+        ctx.obj["console"].print("  bydefault merge -r parent/directory/with/tas")
+        ctx.exit(1)
+
+    # Import here to avoid circular import issues
+    from bydefault.commands.merge import merge_multiple_tas
+
+    # Use the new function to handle multiple TAs
+    exit_code = merge_multiple_tas(
+        paths=list(paths),
+        verbose=verbose,
+        dry_run=dry_run,
+        no_backup=no_backup,
+        mode=mode,
+        recursive=recursive,
         console=ctx.obj["console"],
     )
 
