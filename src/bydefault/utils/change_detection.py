@@ -6,7 +6,6 @@ focusing on configuration files and stanza changes.
 """
 
 import os
-import re
 from pathlib import Path
 from typing import Dict, List, Optional, Set
 
@@ -233,6 +232,51 @@ def _get_conf_files(dir_path: Path) -> Set[Path]:
     return conf_files
 
 
+def _is_stanza_header(line: str, previous_line: Optional[str] = None) -> bool:
+    """
+    Determine if a line represents a legitimate stanza header in Splunk conf files.
+
+    Args:
+        line: String line to check
+        previous_line: The previous line for continuation context
+
+    Returns:
+        bool: True if line is a stanza header, False otherwise
+    """
+    # Basic stanza format check
+    stripped = line.strip()
+    if not (stripped.startswith("[") and stripped.endswith("]")):
+        return False
+
+    # Check if previous line ends with continuation character
+    if previous_line and previous_line.strip().endswith("\\"):
+        return False
+
+    # Exclude lines that appear to be part of a command context
+    command_patterns = [
+        "| foreach",
+        "| map",
+        "| search",
+        "| where",
+        "| eval",
+        "| append",
+        "| join",
+        "| stats",
+        "| sort",
+    ]
+
+    for pattern in command_patterns:
+        if pattern in stripped:
+            return False
+
+    # Typically genuine stanza headers don't have specific characters in them
+    stanza_content = stripped[1:-1]  # Extract content between brackets
+    if "|" in stanza_content or "(" in stanza_content or ")" in stanza_content:
+        return False
+
+    return True
+
+
 def _parse_conf_file(file_path: Path) -> Dict[str, Dict[str, str]]:
     """
     Parse a .conf file into a dictionary of stanzas and their properties.
@@ -243,30 +287,78 @@ def _parse_conf_file(file_path: Path) -> Dict[str, Dict[str, str]]:
     Returns:
         Dictionary of stanza names to dictionaries of property names and values
     """
+    # Process the file as a single string to handle multiline values properly
+    with open(file_path, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    # Initialize the result
     stanzas = {}
     current_stanza = None
+    lines = content.splitlines()
 
-    with open(file_path, "r", encoding="utf-8") as f:
-        for line in f:
-            line = line.strip()
+    # First pass: Identify genuine stanza headers
+    i = 0
+    while i < len(lines):
+        line = lines[i].strip()
 
-            # Skip empty lines and comments
-            if not line or line.startswith(("#", ";")):
+        # Skip empty lines and comments
+        if not line or line.startswith(("#", ";")):
+            i += 1
+            continue
+
+        # Check for stanza header using the helper function
+        prev_line = lines[i - 1].strip() if i > 0 else None
+        if _is_stanza_header(line, prev_line):
+            # Only treat as stanza if it's not part of a command
+            current_stanza = line[1:-1]  # Remove brackets
+            stanzas[current_stanza] = {}
+            i += 1
+            continue
+
+        # Handle key-value pairs, including multiline values
+        if current_stanza is not None and "=" in line:
+            parts = line.split("=", 1)
+            key = parts[0].strip()
+            value = parts[1].strip()
+
+            # Check if this is a multiline value
+            if value.endswith("\\"):
+                # Start of a multiline value - collect all lines until we find one that doesn't end with \
+                multiline_value = value
+                j = i + 1
+
+                while (
+                    j < len(lines)
+                    and lines[j].strip()
+                    and not _is_stanza_header(
+                        lines[j].strip(), lines[j - 1] if j > 0 else None
+                    )
+                ):
+                    next_line = lines[j].strip()
+
+                    # If the previous line ended with \, remove it and append this line
+                    if multiline_value.endswith("\\"):
+                        multiline_value = multiline_value[:-1] + " " + next_line
+                    else:
+                        multiline_value += " " + next_line
+
+                    # If this line doesn't end with \, we're done with this multiline value
+                    if not next_line.endswith("\\"):
+                        break
+
+                    j += 1
+
+                # Store the complete multiline value
+                stanzas[current_stanza][key] = multiline_value
+
+                # Skip the lines we've processed
+                i = j + 1
                 continue
-
-            # Check for stanza header: [stanza_name]
-            stanza_match = re.match(r"\[(.*)\]", line)
-            if stanza_match:
-                current_stanza = stanza_match.group(1)
-                stanzas[current_stanza] = {}
-                continue
-
-            # Check for property: key = value
-            if current_stanza is not None and "=" in line:
-                key, value = line.split("=", 1)
-                key = key.strip()
-                value = value.strip()
+            else:
+                # Simple key-value pair
                 stanzas[current_stanza][key] = value
+
+        i += 1
 
     return stanzas
 
