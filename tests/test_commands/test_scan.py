@@ -173,6 +173,29 @@ class TestScanCommand(TestCase):
             f"[red]Error scanning {self.ta_dir}: Test error[/red]"
         )  # Called with error message
 
+    @patch("bydefault.commands.scan.Console")
+    @patch("bydefault.commands.scan.find_tas")
+    @patch("bydefault.commands.scan.is_valid_ta")
+    @patch("bydefault.commands.scan.scan_directory")
+    @patch("bydefault.commands.scan._display_results")
+    def test_scan_command_with_include_removed(
+        self, mock_display, mock_scan_dir, mock_is_valid, mock_find_tas, mock_console
+    ):
+        """Test scan command with include_removed parameter."""
+        # Setup mocks
+        mock_is_valid.return_value = True
+        mock_scan_dir.return_value = MagicMock(spec=ScanResult)
+
+        # Call the function with include_removed=True
+        result = scan_command([str(self.ta_dir)], include_removed=True)
+
+        # Verify the result
+        self.assertEqual(result, 0)
+        mock_is_valid.assert_called_once_with(mock.ANY)
+        mock_scan_dir.assert_called_once()
+        # Verify _display_results was called with include_removed=True
+        mock_display.assert_called_once_with(mock.ANY, mock.ANY, False, True, True)
+
 
 class TestDisplayResults(TestCase):
     """Test case for display_results functionality."""
@@ -412,6 +435,140 @@ class TestDisplayResultsFunction(TestCase):
             "Expected a call to console.print with a Text object styled as 'modification' containing 'Modified local files:'",
         )
 
+    def test_display_results_removed_stanzas_hidden_by_default(self):
+        """Test that removed stanzas are hidden by default."""
+        # Create stanza changes with one added and one removed
+        added_stanza = StanzaChange(
+            name="[added_stanza]",
+            change_type=ChangeType.ADDED,
+        )
+
+        removed_stanza = StanzaChange(
+            name="[removed_stanza]",
+            change_type=ChangeType.REMOVED,
+        )
+
+        # Create file changes with both types of stanza changes
+        file_changes = [
+            FileChange(
+                file_path=Path("default/app.conf"),
+                is_new=False,
+                stanza_changes=[added_stanza, removed_stanza],
+            )
+        ]
+
+        # Create a scan result with changes
+        scan_results = [
+            ScanResult(
+                ta_path=self.ta_dir,
+                file_changes=file_changes,
+                is_valid_ta=True,
+                error_message=None,
+            )
+        ]
+
+        # Call the function with default parameters (include_removed=False)
+        _display_results(self.console, scan_results, False, True, False)
+
+        # Verify that "Removed stanza" is not in any of the print calls
+        for call in self.console.print.call_args_list:
+            args, _ = call
+            if len(args) == 1 and isinstance(args[0], str):
+                self.assertNotIn("Removed stanza", args[0])
+
+        # Verify there is no call to console.print with a Text object containing "Removed stanza"
+        for call in self.console.print.call_args_list:
+            args, _ = call
+            if (
+                len(args) == 1
+                and hasattr(args[0], "style")
+                and args[0].style == "deletion"
+            ):
+                self.fail(
+                    "Found an unexpected 'deletion' styled Text object when include_removed=False"
+                )
+
+    def test_display_results_removed_stanzas_shown_when_requested(self):
+        """Test that removed stanzas are shown when include_removed=True."""
+        # Create stanza changes with one added and one removed
+        added_stanza = StanzaChange(
+            name="[added_stanza]",
+            change_type=ChangeType.ADDED,
+        )
+
+        removed_stanza = StanzaChange(
+            name="[removed_stanza]",
+            change_type=ChangeType.REMOVED,
+        )
+
+        # Create file changes with both types of stanza changes
+        file_changes = [
+            FileChange(
+                file_path=Path("default/app.conf"),
+                is_new=False,
+                stanza_changes=[added_stanza, removed_stanza],
+            )
+        ]
+
+        # Create a scan result with changes
+        scan_results = [
+            ScanResult(
+                ta_path=self.ta_dir,
+                file_changes=file_changes,
+                is_valid_ta=True,
+                error_message=None,
+            )
+        ]
+
+        # Call the function with include_removed=True
+        _display_results(self.console, scan_results, False, True, True)
+
+        # Verify that a Text object with "Removed stanza" was passed to console.print
+        removal_text_found = False
+
+        # Check all calls to console.print
+        for call in self.console.print.call_args_list:
+            args, _ = call
+            if not args or len(args) < 1:
+                continue
+
+            # Different ways to detect the "Removed stanza" text in Rich Text objects
+            arg = args[0]
+
+            # Check if the argument is a plain string
+            if isinstance(arg, str) and "Removed stanza" in arg:
+                removal_text_found = True
+                break
+
+            # Check for Rich Text objects
+            if hasattr(arg, "plain") and "Removed stanza" in arg.plain:
+                removal_text_found = True
+                break
+
+            # If the argument has parts that can be joined
+            if hasattr(arg, "__iter__") and not isinstance(arg, str):
+                # Try to iterate through parts and check each one
+                try:
+                    for part in arg:
+                        if hasattr(part, "plain") and "Removed stanza" in part.plain:
+                            removal_text_found = True
+                            break
+                except (TypeError, AttributeError):
+                    pass
+
+        # Final check using string representation of all arguments as fallback
+        if not removal_text_found:
+            for call in self.console.print.call_args_list:
+                args, _ = call
+                if args and str(args).find("Removed stanza") != -1:
+                    removal_text_found = True
+                    break
+
+        self.assertTrue(
+            removal_text_found,
+            "Expected a call to console.print with 'Removed stanza' when include_removed=True",
+        )
+
 
 class TestAddSubparserFunction(TestCase):
     """Test case for the add_subparser function."""
@@ -435,6 +592,24 @@ class TestAddSubparserFunction(TestCase):
         self.assertFalse(args.summary)
         self.assertFalse(args.details)
         self.assertIsNone(args.baseline)
+        self.assertFalse(args.include_removed)
+
+    def test_add_subparser_with_include_removed(self):
+        """Test adding the scan command with include_removed flag."""
+        # Create a mock ArgumentParser
+        parser = ArgumentParser()
+        subparsers = parser.add_subparsers(dest="command")
+
+        # Call the function
+        add_subparser(subparsers)
+
+        # Parse arguments to verify the parser works with include_removed flag
+        args = parser.parse_args(["scan", "path/to/ta", "--include-removed"])
+
+        # Verify the arguments were added correctly
+        self.assertEqual(args.command, "scan")
+        self.assertEqual(args.paths, ["path/to/ta"])
+        self.assertTrue(args.include_removed)
 
     def test_handle_scan_command(self):
         """Test the handle_scan_command function."""
@@ -460,4 +635,5 @@ class TestAddSubparserFunction(TestCase):
                 recursive=args.recursive,
                 summary=args.summary,
                 details=args.details or not args.summary,
+                include_removed=args.include_removed,
             )
