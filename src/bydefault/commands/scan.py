@@ -25,6 +25,7 @@ def scan_command(
     verbose: bool = False,
     summary: bool = False,
     details: bool = True,
+    include_removed: bool = False,
     console: Optional[Console] = None,
 ) -> int:
     """
@@ -40,6 +41,7 @@ def scan_command(
         verbose: Whether to show more detailed output
         summary: Whether to show only a summary of changes
         details: Whether to show detailed changes
+        include_removed: Whether to include files/stanzas in default but not in local (default: False)
         console: Optional Rich console instance to use for output (uses custom theme if provided)
 
     Returns:
@@ -103,12 +105,14 @@ def scan_command(
             console.print(f"[red]Error scanning {ta_path}: {str(e)}[/red]")
 
     # Display results
-    _display_results(console, scan_results, summary, details)
+    _display_results(console, scan_results, summary, details, include_removed)
 
     return 0
 
 
-def _display_results(console, scan_results, summary=False, details=True):
+def _display_results(
+    console, scan_results, summary=False, details=True, include_removed=False
+):
     """
     Display scan results.
 
@@ -117,6 +121,7 @@ def _display_results(console, scan_results, summary=False, details=True):
         scan_results: List of ScanResult objects
         summary: Whether to show summary table
         details: Whether to show detailed changes
+        include_removed: Whether to include files/stanzas in default but not in local
     """
     # Process each scan result
     for i, result in enumerate(scan_results):
@@ -140,9 +145,6 @@ def _display_results(console, scan_results, summary=False, details=True):
         total_changes = len(result.file_changes)
 
         if total_changes > 0:
-            # Display TA header with changes
-            console.print(f"Changes detected in: {ta_name}")
-
             # Group changes by type for more organized display
             added_files = []
             removed_files = []
@@ -151,88 +153,116 @@ def _display_results(console, scan_results, summary=False, details=True):
             for file_change in result.file_changes:
                 file_path = file_change.file_path
 
+                # Filter stanza changes if we're not including removed items
+                if not include_removed and not file_change.is_new:
+                    # Keep only non-removed stanza changes
+                    filtered_stanza_changes = [
+                        sc
+                        for sc in file_change.stanza_changes
+                        if sc.change_type != ChangeType.REMOVED
+                    ]
+                    file_change.stanza_changes = filtered_stanza_changes
+
                 if file_change.is_new and not file_change.stanza_changes:
                     # New file without stanzas
                     added_files.append(file_change)
                 elif not file_change.is_new and not file_change.stanza_changes:
-                    # Removed file
-                    removed_files.append(file_change)
+                    # Removed file - only include if specifically requested
+                    if include_removed:
+                        removed_files.append(file_change)
                 else:
                     # Modified file or new file with stanzas
-                    modified_files.append(file_change)
+                    if file_change.stanza_changes:
+                        modified_files.append(file_change)
 
-            # If detailed view is requested
-            if details:
-                # Display modified files first
-                if modified_files:
-                    text = Text("  Modified local files:", style="modification")
-                    console.print(text)
-                    for file_change in modified_files:
-                        file_path = file_change.file_path
-                        console.print(f"    {file_path}")
+            # Count real changes after filtering
+            real_changes = (
+                len(added_files)
+                + len(modified_files)
+                + (len(removed_files) if include_removed else 0)
+            )
 
-                        # Display stanza changes
-                        for stanza_change in file_change.stanza_changes:
-                            stanza_name = stanza_change.name
+            if real_changes > 0:
+                # Display TA header with changes
+                console.print(f"Changes detected in: {ta_name}")
 
-                            # Determine stanza change type and use appropriate colors
-                            if stanza_change.change_type == ChangeType.ADDED:
-                                # Create a text instance with the stanza name (no markup) and message (with markup)
-                                text = Text()
-                                text.append(f"      {stanza_name} - ")
-                                text.append("New stanza", style="addition")
-                                console.print(text)
-                            elif stanza_change.change_type == ChangeType.REMOVED:
-                                text = Text()
-                                text.append(f"      {stanza_name} - ")
-                                text.append("Removed stanza", style="deletion")
-                                console.print(text)
-                            else:
-                                text = Text()
-                                text.append(f"      {stanza_name} - ")
-                                text.append("Modified", style="modification")
-                                console.print(text)
+                # If detailed view is requested
+                if details:
+                    # Display modified files first
+                    if modified_files:
+                        text = Text("  Modified local files:", style="modification")
+                        console.print(text)
+                        for file_change in modified_files:
+                            file_path = file_change.file_path
+                            console.print(f"    {file_path}")
 
-                # Display added files
-                if added_files:
-                    text = Text("  Local files not in default:", style="addition")
-                    console.print(text)
-                    for file_change in added_files:
-                        file_path = file_change.file_path
-                        console.print(f"    {file_path}")
+                            # Display stanza changes
+                            for stanza_change in file_change.stanza_changes:
+                                stanza_name = stanza_change.name
 
-                # Display removed files
-                if removed_files:
-                    text = Text("  Files removed from local:", style="deletion")
-                    console.print(text)
-                    for file_change in removed_files:
-                        file_path = file_change.file_path
-                        console.print(f"    {file_path}")
+                                # Determine stanza change type and use appropriate colors
+                                if stanza_change.change_type == ChangeType.ADDED:
+                                    # Create a text instance with the stanza name (no markup) and message (with markup)
+                                    text = Text()
+                                    text.append(f"      {stanza_name} - ")
+                                    text.append("New stanza", style="addition")
+                                    console.print(text)
+                                elif (
+                                    stanza_change.change_type == ChangeType.REMOVED
+                                    and include_removed
+                                ):
+                                    text = Text()
+                                    text.append(f"      {stanza_name} - ")
+                                    text.append("Removed stanza", style="deletion")
+                                    console.print(text)
+                                elif stanza_change.change_type == ChangeType.MODIFIED:
+                                    text = Text()
+                                    text.append(f"      {stanza_name} - ")
+                                    text.append("Modified", style="modification")
+                                    console.print(text)
 
-            # If summary view is requested
-            elif summary:
-                # Create a table for the summary
-                table = Table()
-                table.add_column("Change Type")
-                table.add_column("Count")
+                    # Display added files
+                    if added_files:
+                        text = Text("  Local files not in default:", style="addition")
+                        console.print(text)
+                        for file_change in added_files:
+                            file_path = file_change.file_path
+                            console.print(f"    {file_path}")
 
-                if added_files:
-                    table.add_row(
-                        Text("Local files not in default", style="addition"),
-                        str(len(added_files)),
-                    )
-                if modified_files:
-                    table.add_row(
-                        Text("Modified local files", style="modification"),
-                        str(len(modified_files)),
-                    )
-                if removed_files:
-                    table.add_row(
-                        Text("Files removed from local", style="deletion"),
-                        str(len(removed_files)),
-                    )
+                    # Display removed files
+                    if removed_files and include_removed:
+                        text = Text("  Files removed from local:", style="deletion")
+                        console.print(text)
+                        for file_change in removed_files:
+                            file_path = file_change.file_path
+                            console.print(f"    {file_path}")
 
-                console.print(table)
+                # If summary view is requested
+                elif summary:
+                    # Create a table for the summary
+                    table = Table()
+                    table.add_column("Change Type")
+                    table.add_column("Count")
+
+                    if added_files:
+                        table.add_row(
+                            Text("Local files not in default", style="addition"),
+                            str(len(added_files)),
+                        )
+                    if modified_files:
+                        table.add_row(
+                            Text("Modified local files", style="modification"),
+                            str(len(modified_files)),
+                        )
+                    if removed_files and include_removed:
+                        table.add_row(
+                            Text("Files removed from local", style="deletion"),
+                            str(len(removed_files)),
+                        )
+
+                    console.print(table)
+            else:
+                console.print(f"No changes detected in: {ta_name}")
         else:
             console.print(f"No changes detected in: {ta_name}")
 
@@ -269,6 +299,12 @@ def add_subparser(subparsers):
         help="Recursively search for TAs in the specified directories",
     )
 
+    scan_parser.add_argument(
+        "--include-removed",
+        action="store_true",
+        help="Include files and stanzas that exist in default but not in local",
+    )
+
     display_group = scan_parser.add_mutually_exclusive_group()
     display_group.add_argument(
         "-s",
@@ -300,4 +336,5 @@ def handle_scan_command(args):
         summary=args.summary,
         details=args.details
         or not args.summary,  # Default to details if neither flag is set
+        include_removed=args.include_removed,
     )

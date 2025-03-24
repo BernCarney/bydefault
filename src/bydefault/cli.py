@@ -214,6 +214,11 @@ def validate(
     is_flag=True,
     help="Show detailed changes (default)",
 )
+@click.option(
+    "--include-removed",
+    is_flag=True,
+    help="Include files and stanzas that exist in default but not in local",
+)
 @click.pass_context
 def scan(
     ctx: click.Context,
@@ -223,6 +228,7 @@ def scan(
     verbose: bool,
     summary: bool,
     details: bool,
+    include_removed: bool,
 ) -> None:
     """Scan Splunk TA directories for configuration changes.
 
@@ -248,17 +254,14 @@ def scan(
     path_strings = [str(path) for path in paths]
     baseline_string = str(baseline) if baseline else None
 
-    # Default to details if neither flag is set
-    if not summary and not details:
-        details = True
-
     exit_code = scan_command(
         paths=path_strings,
         baseline=baseline_string,
         recursive=recursive,
         verbose=verbose,
         summary=summary,
-        details=details,
+        details=details or not summary,  # Default to details if neither flag is set
+        include_removed=include_removed,
         console=ctx.obj["console"],
     )
 
