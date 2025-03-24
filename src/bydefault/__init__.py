@@ -3,5 +3,5 @@
 Package metadata used for CLI identification and version tracking.
 """
 
-__version__ = "0.5.1"
+__version__ = "0.5.2"
 __prog_name__ = "byDefault"
