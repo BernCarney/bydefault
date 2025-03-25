@@ -84,7 +84,8 @@ class ConfigMerger:
                 # If default file doesn't exist yet, simply copy the local file
                 if not default_file.exists():
                     print(
-                        f"DEBUG: Default file {default_file} doesn't exist, copying from local"
+                        f"DEBUG: Default file {default_file} doesn't exist, "
+                        f"copying from local"
                     )
                     self._copy_file(local_file, default_file)
                     continue
@@ -98,7 +99,8 @@ class ConfigMerger:
 
                 print(f"DEBUG: Local stanzas: {list(local_sorter.stanzas.keys())}")
                 print(
-                    f"DEBUG: Default stanzas before merge: {list(default_sorter.stanzas.keys())}"
+                    f"DEBUG: Default stanzas before merge: "
+                    f"{list(default_sorter.stanzas.keys())}"
                 )
 
                 # For replace mode, completely replace stanzas from local
@@ -181,7 +183,8 @@ class ConfigMerger:
                                 )
 
                 print(
-                    f"DEBUG: Default stanzas after merge: {list(default_sorter.stanzas.keys())}"
+                    f"DEBUG: Default stanzas after merge: "
+                    f"{list(default_sorter.stanzas.keys())}"
                 )
 
                 # Write changes to file

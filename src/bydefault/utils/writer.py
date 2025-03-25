@@ -116,7 +116,7 @@ class SortedConfigWriter:
         # Sort the global settings by key
         sorted_settings = sorted(self.global_settings.items())
 
-        for key, setting in sorted_settings:
+        for _key, setting in sorted_settings:
             # Write comments associated with this setting
             for comment in setting.comments:
                 self.output_lines.append(f"# {comment.content}\n")
@@ -239,7 +239,7 @@ class SortedConfigWriter:
         sorted_settings = sorted(stanza.settings.items())
 
         # Write the settings
-        for key, setting in sorted_settings:
+        for _key, setting in sorted_settings:
             # Write comments associated with this setting
             for comment in setting.comments:
                 self.output_lines.append(f"# {comment.content}\n")

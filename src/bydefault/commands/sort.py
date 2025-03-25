@@ -206,7 +206,8 @@ def display_detailed_results(console: Console, sort_result: dict) -> None:
     console.print("Positioning [default] stanza...")
     if sort_result.get("default_stanza_found", False):
         console.print(
-            f"  ✓ Stanza moved to position {sort_result.get('default_stanza_position', 0)}"
+            f"  ✓ Stanza moved to position "
+            f"{sort_result.get('default_stanza_position', 0)}"
         )
     else:
         console.print("  ✓ No [default] stanza found")

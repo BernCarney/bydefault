@@ -31,21 +31,24 @@ def scan_command(
     """
     Scan Splunk TA directories for configuration changes between local and default.
 
-    This command identifies changes made in the local directory compared to the default directory,
-    which is essential for understanding what changes need to be merged from local to default.
+    This command identifies changes made in the local directory compared to
+    the default directory, which is essential for understanding what changes
+    need to be merged from local to default.
 
     Args:
         paths: List of paths to scan
-        baseline: Optional baseline path to compare against (advanced use case)
-        recursive: Whether to recursively search for TAs in the specified paths
-        verbose: Whether to show more detailed output
+        baseline: Optional path to a baseline TA to compare against
+        recursive: Whether to recursively search for TAs in the specified directories
+        verbose: Whether to show verbose output
         summary: Whether to show only a summary of changes
         details: Whether to show detailed changes
-        include_removed: Whether to include files/stanzas in default but not in local (default: False)
-        console: Optional Rich console instance to use for output (uses custom theme if provided)
+        include_removed: Whether to include files/stanzas in default but not in local
+            (default: False)
+        console: Optional Rich console instance to use for output
+            (uses custom theme if provided)
 
     Returns:
-        Exit code: 0 for success, non-zero for failure
+        0 if successful, 1 if there was an error
     """
     # Use provided console or create a new one if not provided
     if console is None:
@@ -76,7 +79,8 @@ def scan_command(
 
         if not is_valid_ta(baseline_path):
             console.print(
-                f"[red]Error: Baseline path {baseline_path} is not a valid Splunk TA[/red]"
+                f"[red]Error: Baseline path {baseline_path} "
+                f"is not a valid Splunk TA[/red]"
             )
             return 1
 
@@ -124,7 +128,7 @@ def _display_results(
         include_removed: Whether to include files/stanzas in default but not in local
     """
     # Process each scan result
-    for i, result in enumerate(scan_results):
+    for _i, result in enumerate(scan_results):
         ta_path = result.ta_path
         ta_name = ta_path.name
 
@@ -200,9 +204,11 @@ def _display_results(
                             for stanza_change in file_change.stanza_changes:
                                 stanza_name = stanza_change.name
 
-                                # Determine stanza change type and use appropriate colors
+                                # Determine stanza change type and use
+                                # appropriate colors
                                 if stanza_change.change_type == ChangeType.ADDED:
-                                    # Create a text instance with the stanza name (no markup) and message (with markup)
+                                    # Create a text instance with the stanza name
+                                    # (no markup) and message (with markup)
                                     text = Text()
                                     text.append(f"      {stanza_name} - ")
                                     text.append("New stanza", style="addition")

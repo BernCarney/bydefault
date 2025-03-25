@@ -75,7 +75,8 @@ class CommentAwareParser:
                         comments_buffer.append(comment)
                         continue
 
-                    # Handle stanza headers - [stanza_name], unless we're in a continued line
+                    # Handle stanza headers - [stanza_name], unless we're in a
+                    # continued line
                     if (
                         not continued_line
                         and line.strip().startswith("[")
@@ -114,7 +115,8 @@ class CommentAwareParser:
 
                         # Check if this line continues
                         if line.rstrip().endswith("\\"):
-                            # Remove the trailing backslash for display but keep continuing
+                            # Remove the trailing backslash for display but keep
+                            # continuing
                             continued_value = continued_value.rstrip("\\").rstrip()
                         else:
                             # End of continuation - create the setting
