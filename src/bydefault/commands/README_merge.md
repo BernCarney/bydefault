@@ -91,7 +91,7 @@ bydefault merge --recursive parent/directory/with/tas
 
 The merge command supports two operation modes:
 
-1. **Merge Mode (default)**: 
+1. **Merge Mode (default)**:
    - Preserves the structure of default files
    - Updates values from local
    - Keeps default settings not present in local
@@ -195,7 +195,7 @@ bydefault validate path/to/ta/default/*.conf
 
 The merge command uses several components:
 
-- `merge.py`: Main command implementation 
+- `merge.py`: Main command implementation
 - `merge_models.py`: Data models for merge operations
 - `merge_utils.py`: Core merging functionality
 - `backup.py`: Backup creation utility

@@ -16,7 +16,7 @@ The `scan` command is designed to detect and report configuration changes betwee
 ## Usage
 
 ```bash
-$ bydefault scan [OPTIONS] PATHS...
+bydefault scan [OPTIONS] PATHS...
 ```
 
 ### Arguments
@@ -38,7 +38,7 @@ $ bydefault scan [OPTIONS] PATHS...
 To scan a single TA directory for changes between local and default:
 
 ```bash
-$ bydefault scan path/to/ta
+bydefault scan path/to/ta
 ```
 
 The command will identify configuration changes in the local directory compared to the default directory.
@@ -48,7 +48,7 @@ The command will identify configuration changes in the local directory compared 
 To scan multiple TAs:
 
 ```bash
-$ bydefault scan path/to/ta1 path/to/ta2
+bydefault scan path/to/ta1 path/to/ta2
 ```
 
 ### Recursive Scanning
@@ -56,7 +56,7 @@ $ bydefault scan path/to/ta1 path/to/ta2
 To recursively search for TAs in a directory:
 
 ```bash
-$ bydefault scan -r directory_containing_tas
+bydefault scan -r directory_containing_tas
 ```
 
 ### Summary View
@@ -64,7 +64,7 @@ $ bydefault scan -r directory_containing_tas
 To show only a summary of changes:
 
 ```bash
-$ bydefault scan -s path/to/ta
+bydefault scan -s path/to/ta
 ```
 
 ## How It Works
@@ -126,7 +126,7 @@ Errors are reported with clear messages and do not terminate the scanning proces
 During development, use the scan command to identify changes made in local:
 
 ```bash
-$ bydefault scan -d path/to/ta
+bydefault scan -d path/to/ta
 ```
 
 Review the changes to ensure they're intended before merging them to default.
@@ -136,7 +136,7 @@ Review the changes to ensure they're intended before merging them to default.
 When managing multiple TAs in a development environment:
 
 ```bash
-$ bydefault scan -r -s path/to/ta_collection
+bydefault scan -r -s path/to/ta_collection
 ```
 
 This helps identify which TAs have local changes that might need attention.
@@ -146,7 +146,7 @@ This helps identify which TAs have local changes that might need attention.
 For special cases, you can compare against a baseline TA:
 
 ```bash
-$ bydefault scan -b baseline_ta path/to/ta
+bydefault scan -b baseline_ta path/to/ta
 ```
 
 This is useful when comparing against a reference implementation rather than just local vs. default.
@@ -159,4 +159,4 @@ The scan command uses several components:
 - `change_detection.py`: For identifying differences between local and default configurations
 - Models: For representing different types of changes
 
-These components are designed to be modular and reusable in other parts of the byDefault tool. 
+These components are designed to be modular and reusable in other parts of the byDefault tool.

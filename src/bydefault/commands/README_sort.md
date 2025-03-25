@@ -16,7 +16,7 @@ The `sort` command organizes Splunk configuration files according to Splunk's lo
 ## Usage
 
 ```bash
-$ bydefault sort [OPTIONS] FILES...
+bydefault sort [OPTIONS] FILES...
 ```
 
 ### Arguments
@@ -129,7 +129,7 @@ Errors are reported with clear messages and do not terminate batch processing.
 During development, sort configuration files for readability:
 
 ```bash
-$ bydefault sort -v props.conf
+bydefault sort -v props.conf
 ```
 
 ### For Multiple Files
@@ -137,7 +137,7 @@ $ bydefault sort -v props.conf
 When organizing multiple configuration files:
 
 ```bash
-$ bydefault sort -b *.conf
+bydefault sort -b *.conf
 ```
 
 ### In CI/CD Pipelines
@@ -179,4 +179,4 @@ These components work together to provide reliable and consistent sorting while 
 - Comments and blank lines are preserved
 - Console output uses rich formatting for improved readability
 - Implementation follows modular design principles
-- Sort functions accept console instance for consistent output formatting 
+- Sort functions accept console instance for consistent output formatting
