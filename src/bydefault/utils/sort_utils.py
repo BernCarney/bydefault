@@ -138,7 +138,11 @@ class ConfigSorter:
             global_stanza_types.append("[default]")
 
         if len(global_stanza_types) > 1:
-            warning_msg = f"Multiple global stanza types detected: {', '.join(global_stanza_types)}. This may cause unexpected behavior in Splunk."
+            warning_msg = (
+                f"Multiple global stanza types detected: "
+                f"{', '.join(global_stanza_types)}. "
+                "This may cause unexpected behavior in Splunk."
+            )
             result["warnings"].append(warning_msg)
 
         # Sort settings within each stanza
@@ -190,7 +194,7 @@ class ConfigSorter:
 
         # Group specific stanzas by type (everything before ::)
         type_groups = {}
-        for name, stanza in type_specific_stanzas.items():
+        for name, _stanza in type_specific_stanzas.items():
             stanza_type = name.split("::")[0] if "::" in name else ""
             if stanza_type not in type_groups:
                 type_groups[stanza_type] = []

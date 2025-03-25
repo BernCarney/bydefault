@@ -27,7 +27,8 @@ def merge_multiple_tas(
 ) -> int:
     """Merge local configurations into default directory for multiple TAs.
 
-    Handles finding and processing multiple TA directories, including recursive discovery.
+    Handles finding and processing multiple TA directories, including
+    recursive discovery.
 
     Args:
         paths: List of paths to process (TA directories or parent directories)
@@ -69,7 +70,8 @@ def merge_multiple_tas(
 
     if not all_tas:
         console.print(
-            "[bold red]Error[/bold red]: No valid Splunk TAs found in the specified paths"
+            "[bold red]Error[/bold red]: No valid Splunk TAs found in the "
+            "specified paths"
         )
         return 1
 
@@ -142,7 +144,8 @@ def merge_command(
     default_dir = ta_path / "default"
     if not default_dir.is_dir():
         console.print(
-            f"[bold red]Error[/bold red]: No default directory found at {ta_path}/default"
+            f"[bold red]Error[/bold red]: No default directory found at "
+            f"{ta_path}/default"
         )
         return 1
 
@@ -159,7 +162,8 @@ def merge_command(
                 console.print(f"Created backup: {backup_path}")
             else:
                 console.print(
-                    f"[bold red]Error[/bold red]: Failed to create backup for {default_dir}"
+                    f"[bold red]Error[/bold red]: Failed to create backup for "
+                    f"{default_dir}"
                 )
                 return 1
         except Exception as e:

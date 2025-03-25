@@ -59,7 +59,8 @@ def detect_file_changes(
 
         # Find removed files (in base but not in current)
         for rel_path in base_files - current_files:
-            # For removed files, we just note them - we don't need to check binary status
+            # For removed files, we just note them - we don't need to check
+            # binary status
             changes.append(
                 FileChange(
                     file_path=rel_path,
@@ -323,7 +324,8 @@ def _parse_conf_file(file_path: Path) -> Dict[str, Dict[str, str]]:
 
             # Check if this is a multiline value
             if value.endswith("\\"):
-                # Start of a multiline value - collect all lines until we find one that doesn't end with \
+                # Start of a multiline value - collect all lines until we find
+                # one that doesn't end with \
                 multiline_value = value
                 j = i + 1
 
@@ -342,7 +344,8 @@ def _parse_conf_file(file_path: Path) -> Dict[str, Dict[str, str]]:
                     else:
                         multiline_value += " " + next_line
 
-                    # If this line doesn't end with \, we're done with this multiline value
+                    # If this line doesn't end with \, we're done with this
+                    # multiline value
                     if not next_line.endswith("\\"):
                         break
 
@@ -419,11 +422,13 @@ def _files_are_identical(file1: Path, file2: Path) -> bool:
 def scan_directory(ta_path: Path, baseline_path: Optional[Path] = None) -> ScanResult:
     """
     Scan a TA directory for changes between local and default directories.
-    If a baseline_path is provided (advanced use case), compare the TA against the baseline instead.
+    If a baseline_path is provided (advanced use case), compare the TA against
+    the baseline instead.
 
     Args:
         ta_path: Path to the TA directory to scan
-        baseline_path: Optional path to a baseline TA directory to compare against (advanced use case)
+        baseline_path: Optional path to a baseline TA directory to compare against
+            (advanced use case)
 
     Returns:
         ScanResult object containing information about changes detected
