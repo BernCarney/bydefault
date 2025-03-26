@@ -356,6 +356,11 @@ def sort(
     help="Skip creating backup before merging (backup is created by default)",
 )
 @click.option(
+    "--keep-local",
+    is_flag=True,
+    help="Keep files in local directory after merging (files are removed by default)",
+)
+@click.option(
     "--mode",
     type=click.Choice(["merge", "replace"], case_sensitive=False),
     default="merge",
@@ -379,6 +384,7 @@ def merge(
     verbose: bool,
     dry_run: bool,
     no_backup: bool,
+    keep_local: bool,
     mode: str,
     recursive: bool,
     paths: tuple[Path, ...],
@@ -389,6 +395,8 @@ def merge(
     the 'default' directory, preserving structure and comments.
 
     By default, a backup is created unless --no-backup is specified.
+    After a successful merge, files in local are removed unless --keep-local
+    is specified.
 
     Arguments:
     - PATHS: One or more paths to Splunk TA directories
@@ -403,6 +411,7 @@ def merge(
         ctx.obj["console"].print("  bydefault merge --verbose path/to/ta")
         ctx.obj["console"].print("  bydefault merge --dry-run path/to/ta")
         ctx.obj["console"].print("  bydefault merge --mode replace path/to/ta")
+        ctx.obj["console"].print("  bydefault merge --keep-local path/to/ta")
         ctx.obj["console"].print("  bydefault merge -r parent/directory/with/tas")
         ctx.exit(1)
 
@@ -415,6 +424,7 @@ def merge(
         verbose=verbose,
         dry_run=dry_run,
         no_backup=no_backup,
+        keep_local=keep_local,
         mode=mode,
         recursive=recursive,
         console=ctx.obj["console"],

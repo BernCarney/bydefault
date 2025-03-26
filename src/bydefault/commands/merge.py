@@ -21,6 +21,7 @@ def merge_multiple_tas(
     verbose: bool = False,
     dry_run: bool = False,
     no_backup: bool = False,
+    keep_local: bool = False,
     mode: str = "merge",
     recursive: bool = False,
     console: Optional[Console] = None,
@@ -35,6 +36,8 @@ def merge_multiple_tas(
         verbose: Whether to show detailed output
         dry_run: Show what would be done without making changes
         no_backup: Skip creating backup (backup is created by default)
+        keep_local: Keep files in local directory after merging
+        (files are removed by default)
         mode: How to handle local changes ('merge' or 'replace')
         recursive: Whether to recursively search for TAs in the directories
         console: Console for output
@@ -90,6 +93,7 @@ def merge_multiple_tas(
             verbose=verbose,
             dry_run=dry_run,
             no_backup=no_backup,
+            keep_local=keep_local,
             mode=mode,
             console=console,
         )
@@ -106,6 +110,7 @@ def merge_command(
     verbose: bool = False,
     dry_run: bool = False,
     no_backup: bool = False,
+    keep_local: bool = False,
     mode: str = "merge",
     console: Optional[Console] = None,
 ) -> int:
@@ -120,6 +125,8 @@ def merge_command(
         verbose: Whether to show detailed output
         dry_run: Show what would be done without making changes
         no_backup: Skip creating backup (backup is created by default)
+        keep_local: Keep files in local directory after merging
+        (files are removed by default)
         mode: How to handle local changes ('merge' or 'replace')
         console: Console for output
 
@@ -201,11 +208,29 @@ def merge_command(
         # Write changes if not in dry run mode
         if not dry_run:
             merger.write()
+
+            # Clean up local files if enabled
+            if not keep_local:
+                removed_files = merger.cleanup_local_files()
+                if removed_files and verbose:
+                    console.print("\n[bold]Removed files from local:[/bold]")
+                    for file_path in removed_files:
+                        console.print(f"  - {file_path.name}")
+                elif removed_files:
+                    console.print(
+                        f"Removed {len(removed_files)} files from local directory"
+                    )
+
             console.print("[bold green]Merge completed successfully![/bold green]")
         else:
             console.print(
                 "[bold yellow]DRY RUN[/bold yellow]: No changes were applied."
             )
+            if not keep_local:
+                console.print(
+                    "[bold yellow]Note[/bold yellow]: "
+                    "Local files would be removed after merge."
+                )
 
     except Exception as e:
         console.print(f"[bold red]Error[/bold red]: Error during merge: {str(e)}")

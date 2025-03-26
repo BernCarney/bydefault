@@ -4,9 +4,10 @@ This module provides the core functionality for merging configuration files
 between local and default directories while preserving structure and comments.
 """
 
+import os
 import shutil
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 from bydefault.models.merge_models import (
     FileMergeResult,
@@ -320,3 +321,28 @@ class ConfigMerger:
             dst: Destination file path
         """
         shutil.copy2(src, dst)
+
+    def cleanup_local_files(self) -> List[Path]:
+        """Remove local files that were successfully merged.
+
+        After a successful merge operation, this removes the files from the local
+        directory that were merged into default.
+
+        Returns:
+            List[Path]: List of paths to removed files
+        """
+        removed_files = []
+
+        # Only remove files that were successfully merged
+        for file_path, file_result in self._merged_files.items():
+            if file_result.success:
+                try:
+                    # Check if file still exists (it might have been removed already)
+                    if file_path.exists():
+                        os.remove(file_path)
+                        removed_files.append(file_path)
+                except Exception as e:
+                    # If removal fails, continue with other files
+                    print(f"Warning: Failed to remove {file_path}: {str(e)}")
+
+        return removed_files

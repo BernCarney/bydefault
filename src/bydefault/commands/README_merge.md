@@ -9,6 +9,7 @@ The `merge` command combines changes from Splunk TA's `local` directory into the
 - Intelligent merging of local configurations into default
 - Two merge modes: `merge` (default) and `replace`
 - Automatic backup creation before applying changes
+- Automatic removal of processed local files after successful merge
 - Preservation of comments and file structure
 - Comprehensive change tracking and reporting
 - Dry-run capability for previewing changes
@@ -31,6 +32,7 @@ bydefault merge [OPTIONS] PATHS...
 - `-v, --verbose`: Show detailed output of merge operations
 - `-n, --dry-run`: Show what would be done without making changes
 - `--no-backup`: Skip creating backup (backup is created by default)
+- `--keep-local`: Keep files in local directory after merging (files are removed by default)
 - `--mode [merge|replace]`: How to handle local changes (default: merge)
 - `-r, --recursive`: Recursively search for TAs in the specified directories
 - `--help`: Show help message and exit
@@ -39,7 +41,7 @@ bydefault merge [OPTIONS] PATHS...
 
 ### Basic Merging
 
-To merge changes with default behavior (creates backup automatically):
+To merge changes with default behavior (creates backup automatically and removes local files):
 
 ```bash
 bydefault merge path/to/ta
@@ -67,6 +69,14 @@ To merge changes without creating a backup:
 
 ```bash
 bydefault merge --no-backup path/to/ta
+```
+
+### Keep Local Files After Merge
+
+To merge changes while keeping the original local files:
+
+```bash
+bydefault merge --keep-local path/to/ta
 ```
 
 ### Process Multiple TAs
