@@ -248,10 +248,23 @@ def display_summary_results(console: Console, result: MergeResult) -> None:
     """
     for file_result in result.file_results:
         status = "✓" if file_result.success else "✗"
-        console.print(
-            f"{file_result.file_path.name}: {status} "
-            f"({len(file_result.merged_stanzas)} stanzas merged)"
-        )
+
+        # Count actual changes
+        new_count = len(file_result.new_stanzas)
+        merged_count = len(file_result.merged_stanzas)
+
+        # Build change summary
+        changes = []
+        if new_count > 0:
+            changes.append(f"{new_count} net new stanza{'s' if new_count != 1 else ''}")
+        if merged_count > 0:
+            changes.append(
+                f"{merged_count} change{'s' if merged_count != 1 else ''} merged with existing stanzas"
+            )
+
+        change_summary = ", ".join(changes) if changes else "no changes"
+
+        console.print(f"{file_result.file_path.name}: {status} ({change_summary})")
 
 
 def display_detailed_results(console: Console, result: MergeResult) -> None:
@@ -264,17 +277,34 @@ def display_detailed_results(console: Console, result: MergeResult) -> None:
     for file_result in result.file_results:
         console.print(f"\nProcessing: {file_result.file_path}")
 
+        # Show stanza type counts
+        stanza_types = {}
+        for stanza_name in file_result.preserved_stanzas:
+            # Get the stanza type from the merger's stanza results
+            stanza_result = file_result.stanza_results.get(stanza_name)
+            if stanza_result:
+                stanza_type = stanza_result.type
+                stanza_types[stanza_type] = stanza_types.get(stanza_type, 0) + 1
+
+        if stanza_types:
+            console.print("  Unchanged stanza types:")
+            # Calculate the maximum width of stanza type names for alignment
+            max_type_width = max(
+                len(stanza_type.name) for stanza_type in stanza_types.keys()
+            )
+            for stanza_type, count in sorted(stanza_types.items()):
+                # Format as "STANZA_TYPE: count"
+                console.print(f"    {stanza_type.name:<{max_type_width}}: {count}")
+
         if file_result.new_stanzas:
-            console.print("  Added stanzas:")
+            console.print("  Net new stanzas:")
             for stanza in file_result.new_stanzas:
                 console.print(f"    [+] {stanza}")
 
         if file_result.merged_stanzas:
-            console.print("  Merged stanzas:")
+            console.print("  Changes to existing stanzas:")
             for stanza in file_result.merged_stanzas:
                 console.print(f"    [M] {stanza}")
 
-        if file_result.preserved_stanzas:
-            console.print("  Preserved stanzas:")
-            for stanza in file_result.preserved_stanzas:
-                console.print(f"    [=] {stanza}")
+        # Add a line break before any messages after the verbose output
+        console.print()

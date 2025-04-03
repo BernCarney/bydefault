@@ -36,7 +36,7 @@ class ConfigSorter:
         self.content = []
         self.stanzas = {}
         self.global_settings = {}
-        self.parser = CommentAwareParser(self.file_path)
+        self.parser = CommentAwareParser(self.file_path, verbose=verbose)
 
     def parse(self) -> None:
         """Parse the configuration file.

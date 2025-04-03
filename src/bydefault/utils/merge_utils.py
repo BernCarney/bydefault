@@ -226,7 +226,9 @@ class ConfigMerger:
             if not default_file.exists():
                 result.new_stanzas.add("*")  # Mark all stanzas as new
                 for stanza_name, stanza in local_sorter.stanzas.items():
-                    stanza_result = StanzaMergeResult(name=stanza_name, is_new=True)
+                    stanza_result = StanzaMergeResult(
+                        name=stanza_name, type=stanza.type, is_new=True
+                    )
                     stanza_result.settings_added.update(stanza.settings.keys())
                     result.stanza_results[stanza_name] = stanza_result
                 return result
@@ -255,9 +257,17 @@ class ConfigMerger:
                     result.merged_stanzas.add(stanza_name)
 
             # Track preserved stanzas (only in default)
-            for stanza_name in default_sorter.stanzas:
+            for stanza_name, default_stanza in default_sorter.stanzas.items():
                 if stanza_name not in local_sorter.stanzas:
                     result.preserved_stanzas.add(stanza_name)
+                    # Create a stanza result for preserved stanzas
+                    stanza_result = StanzaMergeResult(
+                        name=stanza_name, type=default_stanza.type
+                    )
+                    stanza_result.settings_preserved.update(
+                        default_stanza.settings.keys()
+                    )
+                    result.stanza_results[stanza_name] = stanza_result
 
             return result
 
@@ -281,7 +291,7 @@ class ConfigMerger:
         Returns:
             StanzaMergeResult: Results of merging the stanza
         """
-        result = StanzaMergeResult(name=name)
+        result = StanzaMergeResult(name=name, type=local_stanza.type)
 
         try:
             if default_stanza is None:

@@ -193,6 +193,25 @@
       ]
     },
     {
+      "context": "Build Artifacts",
+      "instructions": [
+        "Build artifacts in the dist directory are not tracked by git:",
+        "  - Only used for release notes and distribution",
+        "  - Includes:",
+        "    - bydefault-{version}.tar.gz",
+        "    - bydefault-{version}-py3-none-any.whl",
+        "    - byDefault-v{version}-standalone.tar.gz",
+        "    - byDefault-{version}/ directory",
+        "  - Exceptions (these are tracked):",
+        "    - uv.lock: Tracks dependency versions",
+        "    - *.spec: PyInstaller spec files",
+        "  - When updating build artifacts:",
+        "    1. Build new artifacts with standard build process",
+        "    2. Update release notes with new artifacts",
+        "    3. Do not commit artifacts to git except for the uv.lock file and *.spec files"
+      ]
+    },
+    {
       "context": "Development Notes",
       "instructions": [
         "DEVNOTES.md should include:",
