@@ -119,7 +119,11 @@ class SortedConfigWriter:
         for _key, setting in sorted_settings:
             # Write comments associated with this setting
             for comment in setting.comments:
-                self.output_lines.append(f"# {comment.content}\n")
+                # Handle both Comment objects and string comments
+                if hasattr(comment, "content"):
+                    self.output_lines.append(f"# {comment.content}\n")
+                else:
+                    self.output_lines.append(f"# {comment}\n")
 
             # Write the setting
             self._write_setting(setting, self)
@@ -230,7 +234,11 @@ class SortedConfigWriter:
         """
         # Write comments associated with this stanza
         for comment in stanza.comments:
-            self.output_lines.append(f"# {comment.content}\n")
+            # Handle both Comment objects and string comments
+            if hasattr(comment, "content"):
+                self.output_lines.append(f"# {comment.content}\n")
+            else:
+                self.output_lines.append(f"# {comment}\n")
 
         # Write the stanza header
         self.output_lines.append(f"[{stanza.name}]\n")
@@ -242,13 +250,28 @@ class SortedConfigWriter:
         for _key, setting in sorted_settings:
             # Write comments associated with this setting
             for comment in setting.comments:
-                self.output_lines.append(f"# {comment.content}\n")
+                # Handle both Comment objects and string comments
+                if hasattr(comment, "content"):
+                    self.output_lines.append(f"# {comment.content}\n")
+                else:
+                    self.output_lines.append(f"# {comment}\n")
 
             # Write the setting
             self._write_setting(setting, self)
 
-        # Add blank lines after the stanza
-        for _ in range(stanza.blank_lines_after):
+        # Add blank lines after the stanza - handle both int and list
+        blank_lines = 1  # Default
+        if isinstance(stanza.blank_lines_after, int):
+            blank_lines = stanza.blank_lines_after
+        elif isinstance(stanza.blank_lines_after, list) and stanza.blank_lines_after:
+            # If it's a list, take the first value if available
+            try:
+                blank_lines = int(stanza.blank_lines_after[0])
+            except (ValueError, TypeError):
+                # Fallback to default if conversion fails
+                blank_lines = 1
+
+        for _ in range(blank_lines):
             self.output_lines.append("\n")
 
     def _write_setting(self, setting: Setting, _) -> None:

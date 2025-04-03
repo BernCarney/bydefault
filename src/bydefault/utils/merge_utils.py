@@ -96,7 +96,8 @@ class ConfigMerger:
             # Get the local file path
             local_file = file_result.file_path
 
-            # Handle metadata files (they're in metadata directory instead of local/default)
+            # Handle metadata files (they're in metadata directory
+            # instead of local/default)
             if local_file.name == "local.meta" and "metadata" in str(local_file):
                 default_file = self.ta_dir / "metadata" / "default.meta"
             else:
@@ -207,7 +208,8 @@ class ConfigMerger:
                             # Add blank line between stanzas
                             f.write("\n")
                 except Exception:
-                    # Fallback: Copy the local file to default if we can't write properly
+                    # Fallback: Copy the local file to default if
+                    # we can't write properly
                     self._copy_file(local_file, default_file)
 
             except Exception as e:
@@ -354,11 +356,13 @@ class ConfigMerger:
         shutil.copy2(src, dst)
 
     def cleanup_local_files(self) -> List[Path]:
-        """Remove local files that were successfully merged and clean up empty local directory.
+        """Remove local files that were successfully merged and clean up empty local
+        directory.
 
         After a successful merge operation, this removes the files from the local
         directory that were merged into default. If the local directory becomes empty,
-        it will be removed as well. Also handles local.meta files in the metadata directory.
+        it will be removed as well. Also handles local.meta files in the
+        metadata directory.
 
         Returns:
             List[Path]: List of paths to removed files
