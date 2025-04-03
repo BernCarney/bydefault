@@ -9,6 +9,8 @@ from enum import Enum
 from pathlib import Path
 from typing import Dict, List, Optional, Set
 
+from bydefault.models.sort_models import StanzaType
+
 
 class MergeMode(Enum):
     """Available merge modes."""
@@ -22,6 +24,7 @@ class StanzaMergeResult:
     """Results from merging a single stanza."""
 
     name: str
+    type: StanzaType
     is_new: bool = False
     settings_added: Set[str] = field(default_factory=set)
     settings_updated: Set[str] = field(default_factory=set)

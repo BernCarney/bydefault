@@ -6,9 +6,8 @@ preserves comment relationships to stanzas and settings.
 
 import re
 from pathlib import Path
-from typing import Dict, List, Optional
 
-from bydefault.models.sort_models import Comment, Setting, Stanza, StanzaType
+from bydefault.models.sort_models import Setting, Stanza, StanzaType
 
 
 class CommentAwareParser:
@@ -19,6 +18,7 @@ class CommentAwareParser:
 
     Attributes:
         file_path: The path to the configuration file
+        verbose: Whether to show detailed output
     """
 
     # Regular expressions for parsing
@@ -27,156 +27,112 @@ class CommentAwareParser:
     COMMENT_PATTERN = re.compile(r"^\s*#\s*(.*)\s*$")
     BLANK_LINE_PATTERN = re.compile(r"^\s*$")
 
-    def __init__(self, file_path: Path):
+    def __init__(self, file_path: Path, verbose: bool = False):
         """Initialize the parser.
 
         Args:
             file_path: The path to the configuration file
+            verbose: Whether to show detailed output
         """
         self.file_path = file_path
-        self.current_stanza: Optional[Stanza] = None
-        self.stanzas: Dict[str, Stanza] = {}
-        self.global_settings: Dict[str, Setting] = {}
-        self.pending_comments: List[Comment] = []
+        self.verbose = verbose
+        self.content = []
+        self.stanzas = {}
+        self.global_settings = {}
+        self.comments = []
+        self.blank_lines = []
+        self.current_stanza = None
+        self.current_setting = None
+        self.current_comment = None
+        self.current_blank_lines = 0
+        self.line_number = 0
+        self.stanza_types = {}
 
     def parse(self):
         """Parse the configuration file.
 
+        This method reads the configuration file and parses its content
+        into a structured format that preserves comments and their
+        associations with stanzas and settings.
+
         Returns:
-            ParseResult: The parsed result containing stanzas and settings.
+            tuple: (stanzas, global_settings) where stanzas is a dict of
+                stanza names to Stanza objects and global_settings is a
+                dict of setting names to Setting objects
         """
         try:
-            stanzas = {}
-            global_settings = {}
-            comments_buffer = []
-            current_stanza = None
-            continued_line = False
-            continued_value = ""
-            continued_key = ""
-            continued_line_num = 0
-
-            # For debugging
-            stanza_types = {}
-
             with open(self.file_path, "r", encoding="utf-8") as f:
-                for line_num, line in enumerate(f, 1):
+                for line in f:
+                    self.line_number += 1
                     line = line.rstrip("\n")
 
                     # Skip empty lines
-                    if not line.strip():
+                    if not line:
+                        self.current_blank_lines += 1
                         continue
 
-                    # Handle comments, unless we're in a continued line
-                    if line.strip().startswith("#") and not continued_line:
-                        comment = Comment(
-                            content=line.strip(),
-                            line_number=line_num,
-                        )
-                        comments_buffer.append(comment)
-                        continue
+                    # Reset blank line counter
+                    if self.current_blank_lines > 0:
+                        self.blank_lines.append(self.current_blank_lines)
+                        self.current_blank_lines = 0
 
-                    # Handle stanza headers - [stanza_name], unless we're in a
-                    # continued line
-                    if (
-                        not continued_line
-                        and line.strip().startswith("[")
-                        and line.strip().endswith("]")
-                    ):
-                        # Extract the stanza name without brackets
-                        stanza_name = line.strip()[1:-1]
-
-                        # Classify the stanza type
+                    # Check for stanza
+                    stanza_match = self.STANZA_PATTERN.match(line)
+                    if stanza_match:
+                        stanza_name = stanza_match.group(1)
                         stanza_type = self._classify_stanza(stanza_name)
+                        self.stanza_types[stanza_name] = stanza_type
 
-                        # For debugging
-                        stanza_types[stanza_name] = stanza_type
-
-                        # Create a new stanza
-                        stanza = Stanza(
+                        # Create new stanza
+                        self.current_stanza = Stanza(
                             name=stanza_name,
                             type=stanza_type,
-                            line_number=line_num,
+                            line_number=self.line_number,
+                            comments=self.comments.copy(),
+                            blank_lines_after=self.blank_lines.copy(),
                         )
-
-                        # Associate any pending comments with this stanza
-                        for comment in comments_buffer:
-                            comment.associated_with = stanza_name
-                            stanza.comments.append(comment)
-                        comments_buffer = []
-
-                        stanzas[stanza_name] = stanza
-                        current_stanza = stanza
+                        self.stanzas[stanza_name] = self.current_stanza
+                        self.comments = []
+                        self.blank_lines = []
                         continue
 
-                    # Check if we're continuing a previous line
-                    if continued_line:
-                        # Append this line to the continued value
-                        continued_value += "\n" + line
-
-                        # Check if this line continues
-                        if line.rstrip().endswith("\\"):
-                            # Remove the trailing backslash for display but keep
-                            # continuing
-                            continued_value = continued_value.rstrip("\\").rstrip()
-                        else:
-                            # End of continuation - create the setting
-                            setting = Setting(
-                                key=continued_key,
-                                value=continued_value,
-                                line_number=continued_line_num,
-                            )
-
-                            # Associate comments with this setting
-                            if comments_buffer:
-                                setting.comments.extend(comments_buffer)
-                                comments_buffer = []
-
-                            if current_stanza:
-                                current_stanza.settings[continued_key] = setting
-                            else:
-                                global_settings[continued_key] = setting
-
-                            # Reset continuation
-                            continued_line = False
-                            continued_value = ""
-                            continued_key = ""
-                        continue
-
-                    # Check for settings
+                    # Check for setting
                     setting_match = self.SETTING_PATTERN.match(line)
                     if setting_match:
                         key = setting_match.group(1)
                         value = setting_match.group(2)
 
-                        # Check if the line continues
-                        if value.rstrip().endswith("\\"):
-                            # Start collecting a multi-line value
-                            continued_line = True
-                            continued_key = key
-                            continued_value = value.rstrip("\\").rstrip()
-                            continued_line_num = line_num
+                        # Create setting
+                        setting = Setting(
+                            key=key,
+                            value=value,
+                            line_number=self.line_number,
+                            comments=self.comments.copy(),
+                        )
+
+                        # Add to current stanza or global settings
+                        if self.current_stanza:
+                            self.current_stanza.settings[key] = setting
                         else:
-                            # Regular single-line setting
-                            setting = Setting(
-                                key=key, value=value, line_number=line_num
-                            )
+                            self.global_settings[key] = setting
 
-                            # Associate pending comments with this setting
-                            if comments_buffer:
-                                setting.comments.extend(comments_buffer)
-                                comments_buffer = []
+                        self.comments = []
+                        continue
 
-                            if current_stanza:
-                                current_stanza.settings[key] = setting
-                            else:
-                                global_settings[key] = setting
+                    # Check for comment
+                    comment_match = self.COMMENT_PATTERN.match(line)
+                    if comment_match:
+                        comment = comment_match.group(1)
+                        self.comments.append(comment)
+                        continue
 
-            # For debugging
-            print("Stanza Types:")
-            for name, typ in stanza_types.items():
-                print(f"  {name}: {typ}")
+            # For debugging - only show in verbose mode
+            if self.verbose:
+                print("Stanza Types:")
+                for name, typ in self.stanza_types.items():
+                    print(f"  {name}: {typ}")
 
-            return stanzas, global_settings
+            return self.stanzas, self.global_settings
 
         except (FileNotFoundError, PermissionError, UnicodeDecodeError) as e:
             raise e
