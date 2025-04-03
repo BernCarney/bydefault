@@ -215,7 +215,7 @@ def merge_command(
                 if removed_files and verbose:
                     console.print("\n[bold]Removed files from local:[/bold]")
                     for file_path in removed_files:
-                        console.print(f"  - {file_path.name}")
+                        console.print(f"  - {file_path}")
                 elif removed_files:
                     console.print(
                         f"Removed {len(removed_files)} files from local directory"

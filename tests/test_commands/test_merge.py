@@ -24,8 +24,10 @@ def ta_dir(tmp_path):
 
     local = ta / "local"
     default = ta / "default"
+    metadata = ta / "metadata"
     local.mkdir()
     default.mkdir()
+    metadata.mkdir()
 
     # Create a sample conf file in local
     local_file = local / "inputs.conf"
@@ -56,6 +58,36 @@ disabled = true
 index = internal
 sourcetype = internal_logs
 disabled = true
+"""
+    )
+
+    # Create metadata files
+    local_meta = metadata / "local.meta"
+    local_meta.write_text(
+        """
+[monitor://test]
+access = read : [ * ], write : [ admin ]
+export = system
+owner = admin
+version = 8.2.3
+
+[monitor://another]
+access = read : [ * ], write : [ admin ]
+owner = admin
+"""
+    )
+
+    default_meta = metadata / "default.meta"
+    default_meta.write_text(
+        """
+[monitor://test]
+access = read : [ * ], write : [ admin ]
+owner = nobody
+version = 8.2.0
+
+[monitor://existing]
+access = read : [ * ], write : [ admin ]
+owner = nobody
 """
     )
 
@@ -374,4 +406,46 @@ def test_merge_dry_run_no_cleanup(ta_dir, mock_console):
     # Check for dry run message about cleanup
     mock_console.print.assert_any_call(
         "[bold yellow]Note[/bold yellow]: Local files would be removed after merge."
+    )
+
+
+def test_merge_metadata_files(ta_dir, mock_console):
+    """Test that metadata files are correctly processed during merge."""
+    # Print initial content for debugging
+    local_meta = ta_dir / "metadata" / "local.meta"
+    default_meta = ta_dir / "metadata" / "default.meta"
+
+    print(f"\nBEFORE MERGE - Local.meta content:\n{local_meta.read_text()}")
+    print(f"\nBEFORE MERGE - Default.meta content:\n{default_meta.read_text()}")
+
+    # Call the merge command
+    result = merge_command(
+        ta_dir,
+        verbose=True,
+        dry_run=False,
+        no_backup=True,
+        keep_local=False,  # Don't keep local meta file
+        mode="merge",
+        console=mock_console,
+    )
+
+    assert result == 0
+
+    # Verify merged metadata content
+    merged_content = default_meta.read_text()
+    print(f"\nAFTER MERGE - Default.meta content:\n{merged_content}")
+
+    # Check for merged metadata entries
+    assert "[monitor://test]" in merged_content
+    assert "[monitor://another]" in merged_content
+    assert "[monitor://existing]" in merged_content
+    assert "owner = admin" in merged_content  # From local.meta
+    assert "export = system" in merged_content  # From local.meta
+
+    # Verify local.meta was removed
+    assert not local_meta.exists()
+
+    # Success message
+    mock_console.print.assert_any_call(
+        "[bold green]Merge completed successfully![/bold green]"
     )

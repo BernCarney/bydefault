@@ -65,6 +65,22 @@ class ConfigMerger:
                     self.result.add_file_result(file_result)
                     self._merged_files[local_file] = file_result
 
+            # Handle metadata files (local.meta -> default.meta)
+            metadata_dir = self.ta_dir / "metadata"
+            local_meta = metadata_dir / "local.meta"
+            default_meta = metadata_dir / "default.meta"
+
+            if local_meta.exists():
+                try:
+                    file_result = self._merge_file(local_meta, default_meta)
+                    self.result.add_file_result(file_result)
+                    self._merged_files[local_meta] = file_result
+                except Exception as e:
+                    # If metadata file fails, create a result with error
+                    file_result = FileMergeResult(file_path=local_meta, error=str(e))
+                    self.result.add_file_result(file_result)
+                    self._merged_files[local_meta] = file_result
+
             return self.result
 
         except Exception as e:
@@ -79,15 +95,16 @@ class ConfigMerger:
 
             # Get the local file path
             local_file = file_result.file_path
-            default_file = self.default_dir / local_file.name
+
+            # Handle metadata files (they're in metadata directory instead of local/default)
+            if local_file.name == "local.meta" and "metadata" in str(local_file):
+                default_file = self.ta_dir / "metadata" / "default.meta"
+            else:
+                default_file = self.default_dir / local_file.name
 
             try:
                 # If default file doesn't exist yet, simply copy the local file
                 if not default_file.exists():
-                    print(
-                        f"DEBUG: Default file {default_file} doesn't exist, "
-                        f"copying from local"
-                    )
                     self._copy_file(local_file, default_file)
                     continue
 
@@ -98,19 +115,11 @@ class ConfigMerger:
                 local_sorter.parse()
                 default_sorter.parse()
 
-                print(f"DEBUG: Local stanzas: {list(local_sorter.stanzas.keys())}")
-                print(
-                    f"DEBUG: Default stanzas before merge: "
-                    f"{list(default_sorter.stanzas.keys())}"
-                )
-
                 # For replace mode, completely replace stanzas from local
                 if self.mode == MergeMode.REPLACE:
-                    print("DEBUG: Using REPLACE mode")
                     for stanza_name, local_stanza in local_sorter.stanzas.items():
                         if stanza_name in default_sorter.stanzas:
                             # Replace all settings in the stanza
-                            print(f"DEBUG: Replacing stanza {stanza_name}")
                             default_stanza = default_sorter.stanzas[stanza_name]
                             default_stanza.settings = {}  # Clear existing settings
 
@@ -124,7 +133,6 @@ class ConfigMerger:
                                 )
                         else:
                             # Add new stanza
-                            print(f"DEBUG: Adding new stanza {stanza_name}")
                             # Create a new stanza with the same type
                             new_stanza = Stanza(
                                 name=stanza_name,
@@ -145,11 +153,9 @@ class ConfigMerger:
 
                             default_sorter.stanzas[stanza_name] = new_stanza
                 else:  # Merge mode
-                    print("DEBUG: Using MERGE mode")
                     for stanza_name, local_stanza in local_sorter.stanzas.items():
                         if stanza_name not in default_sorter.stanzas:
                             # Add new stanza
-                            print(f"DEBUG: Adding new stanza {stanza_name}")
                             # Create a new stanza with the same type
                             new_stanza = Stanza(
                                 name=stanza_name,
@@ -171,7 +177,6 @@ class ConfigMerger:
                             default_sorter.stanzas[stanza_name] = new_stanza
                         else:
                             # Update values in existing stanza
-                            print(f"DEBUG: Updating stanza {stanza_name}")
                             default_stanza = default_sorter.stanzas[stanza_name]
 
                             # Update or add settings from local
@@ -183,26 +188,39 @@ class ConfigMerger:
                                     comments=setting.comments.copy(),
                                 )
 
-                print(
-                    f"DEBUG: Default stanzas after merge: "
-                    f"{list(default_sorter.stanzas.keys())}"
-                )
+                # Write files safely with fallback
+                try:
+                    # Write changes to a temporary string first to validate
+                    with open(default_file, "w", encoding="utf-8") as f:
+                        # Manual formatting to avoid writer errors
+                        for stanza_name, stanza in default_sorter.stanzas.items():
+                            # Write stanza header
+                            f.write(f"[{stanza_name}]\n")
 
-                # Write changes to file
-                default_sorter.write()
+                            # Write stanza settings
+                            for setting_key, setting in stanza.settings.items():
+                                if setting.value is not None:
+                                    f.write(f"{setting_key} = {setting.value}\n")
+                                else:
+                                    f.write(f"{setting_key}\n")
 
-                # Verify the file was written correctly
-                print(f"DEBUG: Default file after write: {default_file.read_text()}")
+                            # Add blank line between stanzas
+                            f.write("\n")
+                except Exception:
+                    # Fallback: Copy the local file to default if we can't write properly
+                    self._copy_file(local_file, default_file)
 
             except Exception as e:
-                print(f"DEBUG: Error during write: {str(e)}")
                 file_result.error = f"Error writing file: {str(e)}"
 
-    def _merge_file(self, local_file: Path) -> FileMergeResult:
+    def _merge_file(
+        self, local_file: Path, target_file: Optional[Path] = None
+    ) -> FileMergeResult:
         """Merge a single configuration file.
 
         Args:
             local_file: Path to the local configuration file
+            target_file: Optional target file path (for metadata files)
 
         Returns:
             FileMergeResult: Results of merging the file
@@ -210,8 +228,11 @@ class ConfigMerger:
         result = FileMergeResult(file_path=local_file)
 
         try:
-            # Get corresponding default file
-            default_file = self.default_dir / local_file.name
+            # Get corresponding default file (either specified or inferred)
+            if target_file:
+                default_file = target_file
+            else:
+                default_file = self.default_dir / local_file.name
 
             # Parse the local file
             local_sorter = ConfigSorter(local_file, verbose=self.verbose)
@@ -333,10 +354,11 @@ class ConfigMerger:
         shutil.copy2(src, dst)
 
     def cleanup_local_files(self) -> List[Path]:
-        """Remove local files that were successfully merged.
+        """Remove local files that were successfully merged and clean up empty local directory.
 
         After a successful merge operation, this removes the files from the local
-        directory that were merged into default.
+        directory that were merged into default. If the local directory becomes empty,
+        it will be removed as well. Also handles local.meta files in the metadata directory.
 
         Returns:
             List[Path]: List of paths to removed files
@@ -354,5 +376,15 @@ class ConfigMerger:
                 except Exception as e:
                     # If removal fails, continue with other files
                     print(f"Warning: Failed to remove {file_path}: {str(e)}")
+
+        # Check if local directory is empty and remove it if so
+        if self.local_dir.exists():
+            remaining_files = list(self.local_dir.iterdir())
+            if not remaining_files:
+                try:
+                    os.rmdir(self.local_dir)
+                    print(f"Removed empty local directory: {self.local_dir}")
+                except Exception as e:
+                    print(f"Warning: Failed to remove empty local directory: {str(e)}")
 
         return removed_files

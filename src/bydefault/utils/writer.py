@@ -251,31 +251,16 @@ class SortedConfigWriter:
         for _ in range(stanza.blank_lines_after):
             self.output_lines.append("\n")
 
-    def _write_setting(self, setting: Setting, _):
-        """Write a setting to the output lines.
+    def _write_setting(self, setting: Setting, _) -> None:
+        """Write a setting.
 
         Args:
             setting: The setting to write
-            _: Unused parameter for compatibility
+            _: Unused parameter (for backward compatibility)
         """
-        # Write any comments associated with the setting
-        for comment in setting.comments:
-            self.output_lines.append(f"{comment.content}\n")
-
-        # Check if the value contains newlines, which indicates a multi-line value
-        if "\n" in setting.value:
-            # Split the value by newlines and join with backslashes
-            lines = setting.value.split("\n")
-            for i, line in enumerate(lines):
-                if i == 0:
-                    # First line with setting key
-                    self.output_lines.append(f"{setting.key} = {line} \\\n")
-                elif i == len(lines) - 1:
-                    # Last line without backslash
-                    self.output_lines.append(f"{line}\n")
-                else:
-                    # Middle lines with backslashes
-                    self.output_lines.append(f"{line} \\\n")
-        else:
-            # Regular single-line setting
+        # Write the setting
+        if setting.key and setting.value is not None:
             self.output_lines.append(f"{setting.key} = {setting.value}\n")
+        elif setting.key:
+            # Handle settings with no value
+            self.output_lines.append(f"{setting.key}\n")
