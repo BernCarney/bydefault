@@ -251,3 +251,126 @@ def test_merger_error_handling(ta_dir):
     # The file should be marked as failed
     assert not error_file.success
     assert error_file.error == "Test error"
+
+
+def test_merge_multiline_values(tmp_path):
+    """Test that the merge command correctly handles multiline values."""
+    # Create a simple TA directory structure
+    ta_dir = tmp_path / "test_ta"
+    local_dir = ta_dir / "local"
+    default_dir = ta_dir / "default"
+    local_dir.mkdir(parents=True)
+    default_dir.mkdir(parents=True)
+
+    # Create a local file with a multiline value
+    local_file = local_dir / "test.conf"
+    local_content = """[test]
+multiline_value = line1 \\
+line2 \\
+line3
+single_value = simple value
+"""
+    local_file.write_text(local_content)
+
+    # Create a default file with a single-line value
+    default_file = default_dir / "test.conf"
+    default_content = """[test]
+existing_value = default value
+"""
+    default_file.write_text(default_content)
+
+    # Print initial files for debugging
+    print(f"\nLOCAL CONTENT:\n{local_file.read_text()}")
+    print(f"\nDEFAULT CONTENT (BEFORE):\n{default_file.read_text()}")
+
+    # Merge the files
+    merger = ConfigMerger(ta_dir)
+    result = merger.merge()
+    merger.write()
+
+    # Verify that the merge was successful
+    assert result.success
+
+    # Read the merged file
+    merged_content = default_file.read_text()
+    print(f"\nMERGED CONTENT:\n{merged_content}")
+
+    # Verify that multiline values are preserved correctly
+    assert "multiline_value = line1 \\" in merged_content
+    assert "line2 \\" in merged_content
+    assert "line3" in merged_content
+    assert "single_value = simple value" in merged_content
+    assert "existing_value = default value" in merged_content
+
+    # Make sure the lines are in the correct order
+    lines = merged_content.splitlines()
+    multiline_start_index = lines.index(
+        [l for l in lines if "multiline_value = line1" in l][0]
+    )
+    assert "line2" in lines[multiline_start_index + 1]
+    assert "line3" in lines[multiline_start_index + 2]
+
+
+def test_merge_multiline_values_realistic(tmp_path):
+    """Test merging with realistic multiline values."""
+    # Create a simple TA directory structure
+    ta_dir = tmp_path / "test_ta"
+    local_dir = ta_dir / "local"
+    default_dir = ta_dir / "default"
+    local_dir.mkdir(parents=True)
+    default_dir.mkdir(parents=True)
+
+    # Create a local file with a multiline value - no indentation
+    local_file = local_dir / "test.conf"
+    local_content = """[test]
+multiline_value = line1 \\
+line2 \\
+line3
+single_value = simple value
+"""
+    local_file.write_text(local_content)
+
+    # Create a default file with a single-line value
+    default_file = default_dir / "test.conf"
+    default_content = """[test]
+existing_value = default value
+"""
+    default_file.write_text(default_content)
+
+    print(f"\nLOCAL CONTENT:\n{local_file.read_text()}")
+    print(f"\nDEFAULT CONTENT (BEFORE):\n{default_file.read_text()}")
+
+    # IMPORTANT: Use the same parsing approach as change_detection
+    # to get the correct parsing of multi-line values
+    from bydefault.utils.change_detection import _parse_conf_file
+
+    # Parse the local content with the proven method
+    parsed_local = _parse_conf_file(local_file)
+    print(f"\nParsed local multiline_value: {parsed_local['test']['multiline_value']}")
+
+    # Merge the files
+    merger = ConfigMerger(ta_dir)
+    result = merger.merge()
+    merger.write()
+
+    # Read merged file
+    merged_content = default_file.read_text()
+    print(f"\nMERGED CONTENT:\n{merged_content}")
+
+    # Parse the merged content
+    parsed_merged = _parse_conf_file(default_file)
+    print(
+        f"\nParsed merged multiline_value: {parsed_merged['test'].get('multiline_value', 'NOT FOUND')}"
+    )
+
+    # Check if the multiline value structure was preserved
+    assert "multiline_value = line1 \\" in merged_content
+    assert "line2 \\" in merged_content
+    assert "line3" in merged_content
+
+    # Check if the parsed value is correct
+    assert "multiline_value" in parsed_merged["test"]
+    assert (
+        parsed_merged["test"]["multiline_value"]
+        == parsed_local["test"]["multiline_value"]
+    )

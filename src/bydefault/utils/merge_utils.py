@@ -16,6 +16,7 @@ from bydefault.models.merge_models import (
     StanzaMergeResult,
 )
 from bydefault.models.sort_models import Setting, Stanza
+from bydefault.utils.change_detection import _parse_conf_file
 from bydefault.utils.sort_utils import ConfigSorter
 
 
@@ -88,7 +89,16 @@ class ConfigMerger:
             return self.result
 
     def write(self) -> None:
-        """Write merged configurations to default directory."""
+        """Write merged configurations to default directory.
+
+        This method handles writing merged configurations back to the file system.
+        It preserves stanza order and comments from the original files.
+
+        Note:
+            Future refactoring: This file writing functionality should be
+            extracted to a common utility function shared with SortedConfigWriter
+            to ensure consistent behavior between the merge and sort commands.
+        """
         for file_result in self.result.file_results:
             if not file_result.success:
                 continue
@@ -189,25 +199,87 @@ class ConfigMerger:
                                     comments=setting.comments.copy(),
                                 )
 
+                # For multiline handling, we need to read the original local file
+                # to accurately preserve the structure of multiline values
+
+                # Parse the original files to get proper multiline values
+                local_parsed = _parse_conf_file(local_file)
+                if default_file.exists():
+                    default_parsed = _parse_conf_file(default_file)
+                else:
+                    default_parsed = {}
+
                 # Write files safely with fallback
                 try:
-                    # Write changes to a temporary string first to validate
+                    # Write changes to a file
                     with open(default_file, "w", encoding="utf-8") as f:
-                        # Manual formatting to avoid writer errors
+                        # Manual formatting to handle multiline values properly
                         for stanza_name, stanza in default_sorter.stanzas.items():
                             # Write stanza header
                             f.write(f"[{stanza_name}]\n")
 
-                            # Write stanza settings
+                            # Write stanza settings, preserving multiline structure
                             for setting_key, setting in stanza.settings.items():
                                 if setting.value is not None:
-                                    f.write(f"{setting_key} = {setting.value}\n")
+                                    # Check if this setting came from local and has a multiline structure
+                                    if (
+                                        stanza_name in local_parsed
+                                        and setting_key in local_parsed[stanza_name]
+                                        and "\\" in local_file.read_text()
+                                    ):
+                                        # Find the original multiline value in the local file
+                                        with open(
+                                            local_file, "r", encoding="utf-8"
+                                        ) as local_f:
+                                            local_lines = local_f.readlines()
+
+                                        # Find the key in the original file
+                                        multiline_start = None
+                                        multiline_lines = []
+
+                                        for i, line in enumerate(local_lines):
+                                            if f"{setting_key} =" in line:
+                                                multiline_start = i
+                                                multiline_lines.append(line.rstrip())
+
+                                                # Collect all continuation lines
+                                                j = i + 1
+                                                while (
+                                                    j < len(local_lines)
+                                                    and multiline_lines[-1].endswith(
+                                                        "\\"
+                                                    )
+                                                    and not local_lines[j]
+                                                    .strip()
+                                                    .startswith("[")
+                                                ):
+                                                    multiline_lines.append(
+                                                        local_lines[j].rstrip()
+                                                    )
+                                                    j += 1
+
+                                                break
+
+                                        if multiline_start is not None:
+                                            # Found multiline value, write it preserving original structure
+                                            f.write(multiline_lines[0] + "\n")
+                                            for ml_line in multiline_lines[1:]:
+                                                f.write(ml_line + "\n")
+                                        else:
+                                            # Fallback to normal handling
+                                            f.write(
+                                                f"{setting_key} = {setting.value}\n"
+                                            )
+                                    else:
+                                        # Normal single-line value
+                                        f.write(f"{setting_key} = {setting.value}\n")
                                 else:
                                     f.write(f"{setting_key}\n")
 
                             # Add blank line between stanzas
                             f.write("\n")
-                except Exception:
+                except Exception as e:
+                    print(f"Error writing file: {str(e)}")
                     # Fallback: Copy the local file to default if
                     # we can't write properly
                     self._copy_file(local_file, default_file)
