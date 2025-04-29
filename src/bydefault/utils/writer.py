@@ -16,6 +16,11 @@ class SortedConfigWriter:
     This class writes sorted Splunk configuration files while
     preserving structure and comments.
 
+    Note:
+        Future refactoring: The file writing functionality in this class should be
+        extracted to a common utility function shared with ConfigMerger.write()
+        to ensure consistent behavior between the merge and sort commands.
+
     Attributes:
         file_path: The path to the configuration file
         stanzas: The stanzas to write
