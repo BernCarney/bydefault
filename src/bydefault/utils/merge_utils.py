@@ -5,6 +5,7 @@ between local and default directories while preserving structure and comments.
 """
 
 import os
+import re
 import shutil
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -15,7 +16,7 @@ from bydefault.models.merge_models import (
     MergeResult,
     StanzaMergeResult,
 )
-from bydefault.models.sort_models import Setting, Stanza
+from bydefault.models.sort_models import Stanza
 from bydefault.utils.change_detection import _parse_conf_file
 from bydefault.utils.sort_utils import ConfigSorter
 
@@ -93,11 +94,6 @@ class ConfigMerger:
 
         This method handles writing merged configurations back to the file system.
         It preserves stanza order and comments from the original files.
-
-        Note:
-            Future refactoring: This file writing functionality should be
-            extracted to a common utility function shared with SortedConfigWriter
-            to ensure consistent behavior between the merge and sort commands.
         """
         for file_result in self.result.file_results:
             if not file_result.success:
@@ -106,8 +102,7 @@ class ConfigMerger:
             # Get the local file path
             local_file = file_result.file_path
 
-            # Handle metadata files (they're in metadata directory
-            # instead of local/default)
+            # Handle metadata files (they're in metadata directory instead of local/default)
             if local_file.name == "local.meta" and "metadata" in str(local_file):
                 default_file = self.ta_dir / "metadata" / "default.meta"
             else:
@@ -119,173 +114,185 @@ class ConfigMerger:
                     self._copy_file(local_file, default_file)
                     continue
 
-                # Create file content from scratch
-                local_sorter = ConfigSorter(local_file, verbose=self.verbose)
-                default_sorter = ConfigSorter(default_file, verbose=self.verbose)
-
-                local_sorter.parse()
-                default_sorter.parse()
-
-                # For replace mode, completely replace stanzas from local
-                if self.mode == MergeMode.REPLACE:
-                    for stanza_name, local_stanza in local_sorter.stanzas.items():
-                        if stanza_name in default_sorter.stanzas:
-                            # Replace all settings in the stanza
-                            default_stanza = default_sorter.stanzas[stanza_name]
-                            default_stanza.settings = {}  # Clear existing settings
-
-                            # Copy settings from local to default
-                            for setting_key, setting in local_stanza.settings.items():
-                                default_stanza.settings[setting_key] = Setting(
-                                    key=setting.key,
-                                    value=setting.value,
-                                    line_number=setting.line_number,
-                                    comments=setting.comments.copy(),
-                                )
-                        else:
-                            # Add new stanza
-                            # Create a new stanza with the same type
-                            new_stanza = Stanza(
-                                name=stanza_name,
-                                type=local_stanza.type,
-                                line_number=local_stanza.line_number,
-                                comments=local_stanza.comments.copy(),
-                                blank_lines_after=local_stanza.blank_lines_after,
-                            )
-
-                            # Copy settings
-                            for setting_key, setting in local_stanza.settings.items():
-                                new_stanza.settings[setting_key] = Setting(
-                                    key=setting.key,
-                                    value=setting.value,
-                                    line_number=setting.line_number,
-                                    comments=setting.comments.copy(),
-                                )
-
-                            default_sorter.stanzas[stanza_name] = new_stanza
-                else:  # Merge mode
-                    for stanza_name, local_stanza in local_sorter.stanzas.items():
-                        if stanza_name not in default_sorter.stanzas:
-                            # Add new stanza
-                            # Create a new stanza with the same type
-                            new_stanza = Stanza(
-                                name=stanza_name,
-                                type=local_stanza.type,
-                                line_number=local_stanza.line_number,
-                                comments=local_stanza.comments.copy(),
-                                blank_lines_after=local_stanza.blank_lines_after,
-                            )
-
-                            # Copy settings
-                            for setting_key, setting in local_stanza.settings.items():
-                                new_stanza.settings[setting_key] = Setting(
-                                    key=setting.key,
-                                    value=setting.value,
-                                    line_number=setting.line_number,
-                                    comments=setting.comments.copy(),
-                                )
-
-                            default_sorter.stanzas[stanza_name] = new_stanza
-                        else:
-                            # Update values in existing stanza
-                            default_stanza = default_sorter.stanzas[stanza_name]
-
-                            # Update or add settings from local
-                            for setting_key, setting in local_stanza.settings.items():
-                                default_stanza.settings[setting_key] = Setting(
-                                    key=setting.key,
-                                    value=setting.value,
-                                    line_number=setting.line_number,
-                                    comments=setting.comments.copy(),
-                                )
-
-                # For multiline handling, we need to read the original local file
-                # to accurately preserve the structure of multiline values
-
-                # Parse the original files to get proper multiline values
+                # Parse both files to get complete stanza information
                 local_parsed = _parse_conf_file(local_file)
-                if default_file.exists():
-                    default_parsed = _parse_conf_file(default_file)
-                else:
-                    default_parsed = {}
+                default_parsed = _parse_conf_file(default_file)
 
-                # Write files safely with fallback
+                # Read the full local file content for multiline detection
+                with open(local_file, "r", encoding="utf-8") as f:
+                    local_content = f.read()
+
+                # Create a backup of the default file
+                default_backup = None
                 try:
-                    # Write changes to a file
-                    with open(default_file, "w", encoding="utf-8") as f:
-                        # Manual formatting to handle multiline values properly
-                        for stanza_name, stanza in default_sorter.stanzas.items():
-                            # Write stanza header
-                            f.write(f"[{stanza_name}]\n")
+                    import shutil
 
-                            # Write stanza settings, preserving multiline structure
-                            for setting_key, setting in stanza.settings.items():
-                                if setting.value is not None:
-                                    # Check if this setting came from local and has a multiline structure
-                                    if (
-                                        stanza_name in local_parsed
-                                        and setting_key in local_parsed[stanza_name]
-                                        and "\\" in local_file.read_text()
-                                    ):
-                                        # Find the original multiline value in the local file
-                                        with open(
-                                            local_file, "r", encoding="utf-8"
-                                        ) as local_f:
-                                            local_lines = local_f.readlines()
+                    default_backup = default_file.with_suffix(
+                        default_file.suffix + ".bak"
+                    )
+                    shutil.copy(default_file, default_backup)
+                except Exception:
+                    # If backup fails, continue without backup
+                    pass
 
-                                        # Find the key in the original file
-                                        multiline_start = None
-                                        multiline_lines = []
+                # Prepare merged configuration
+                merged_config = self._prepare_merged_config(
+                    local_parsed, default_parsed
+                )
 
-                                        for i, line in enumerate(local_lines):
-                                            if f"{setting_key} =" in line:
-                                                multiline_start = i
-                                                multiline_lines.append(line.rstrip())
+                try:
+                    # Write merged configuration to file
+                    self._write_merged_file(default_file, merged_config, local_content)
 
-                                                # Collect all continuation lines
-                                                j = i + 1
-                                                while (
-                                                    j < len(local_lines)
-                                                    and multiline_lines[-1].endswith(
-                                                        "\\"
-                                                    )
-                                                    and not local_lines[j]
-                                                    .strip()
-                                                    .startswith("[")
-                                                ):
-                                                    multiline_lines.append(
-                                                        local_lines[j].rstrip()
-                                                    )
-                                                    j += 1
-
-                                                break
-
-                                        if multiline_start is not None:
-                                            # Found multiline value, write it preserving original structure
-                                            f.write(multiline_lines[0] + "\n")
-                                            for ml_line in multiline_lines[1:]:
-                                                f.write(ml_line + "\n")
-                                        else:
-                                            # Fallback to normal handling
-                                            f.write(
-                                                f"{setting_key} = {setting.value}\n"
-                                            )
-                                    else:
-                                        # Normal single-line value
-                                        f.write(f"{setting_key} = {setting.value}\n")
-                                else:
-                                    f.write(f"{setting_key}\n")
-
-                            # Add blank line between stanzas
-                            f.write("\n")
+                    # Delete backup if all went well
+                    if default_backup and default_backup.exists():
+                        default_backup.unlink()
                 except Exception as e:
-                    print(f"Error writing file: {str(e)}")
-                    # Fallback: Copy the local file to default if
-                    # we can't write properly
-                    self._copy_file(local_file, default_file)
+                    # Restore backup if available
+                    if default_backup and default_backup.exists():
+                        try:
+                            shutil.copy(default_backup, default_file)
+                            default_backup.unlink()
+                        except Exception:
+                            pass
+                    # Re-raise the exception
+                    raise e
 
             except Exception as e:
+                # Log the error
                 file_result.error = f"Error writing file: {str(e)}"
+                if self.verbose:
+                    print(f"Error writing file {default_file}: {str(e)}")
+                    import traceback
+
+                    traceback.print_exc()
+
+    def _prepare_merged_config(self, local_parsed, default_parsed):
+        """Prepare the merged configuration based on local and default settings.
+
+        Args:
+            local_parsed: Dictionary of stanzas from local file
+            default_parsed: Dictionary of stanzas from default file
+
+        Returns:
+            Dictionary containing the merged configuration
+        """
+        merged_config = {}
+
+        # Start with all settings from default
+        for stanza_name, settings in default_parsed.items():
+            merged_config[stanza_name] = settings.copy()
+
+        # Add or update settings from local based on merge mode
+        for stanza_name, settings in local_parsed.items():
+            # If stanza doesn't exist in merged_config, add it
+            if stanza_name not in merged_config:
+                merged_config[stanza_name] = {}
+
+            # Replace or merge settings based on mode
+            if self.mode == MergeMode.REPLACE:
+                # Replace entire stanza with local version
+                merged_config[stanza_name] = settings.copy()
+            else:
+                # Update settings from local
+                for setting_key, setting_value in settings.items():
+                    merged_config[stanza_name][setting_key] = setting_value
+
+        return merged_config
+
+    def _write_merged_file(self, output_file, merged_config, local_content):
+        """Write the merged configuration to a file.
+
+        Args:
+            output_file: Path to the output file
+            merged_config: Dictionary containing the merged configuration
+            local_content: String containing the local file content for multiline detection
+        """
+
+        # List of settings to avoid duplicates
+        written_settings = {}
+
+        with open(output_file, "w", encoding="utf-8") as f:
+            # Process each stanza
+            for stanza_name, settings in merged_config.items():
+                # Write stanza header
+                f.write(f"[{stanza_name}]\n")
+                written_settings[stanza_name] = set()
+
+                # First directly process multiline values from the local file
+                multiline_settings = set()
+
+                # Directly find multiline settings in the local file
+                stanza_pattern = rf"\[{re.escape(stanza_name)}\](.*?)(?=\n\[|\Z)"
+                stanza_matches = re.search(stanza_pattern, local_content, re.DOTALL)
+
+                if stanza_matches:
+                    stanza_content = stanza_matches.group(1)
+                    # Find individual settings with continuation characters
+                    lines = stanza_content.split("\n")
+                    i = 0
+
+                    while i < len(lines):
+                        line = lines[i].strip()
+
+                        # Check if this is a setting line
+                        if "=" in line and not line.startswith("#"):
+                            setting_key, setting_value = line.split("=", 1)
+                            setting_key = setting_key.strip()
+
+                            # Only process settings that are in our merged config
+                            if setting_key in settings:
+                                # Check if this is potentially a multiline setting
+                                if "\\" in setting_value:
+                                    # This is a multiline setting
+                                    multiline_lines = [line]
+
+                                    # Collect all continuation lines
+                                    j = i + 1
+                                    current_line = line
+
+                                    while j < len(lines) and (
+                                        "\\" in current_line or j == i + 1
+                                    ):
+                                        current_line = lines[j].strip()
+                                        if not current_line.startswith(
+                                            "["
+                                        ):  # Not a new stanza
+                                            multiline_lines.append(current_line)
+                                            j += 1
+                                        else:
+                                            break
+
+                                    if len(multiline_lines) > 1:
+                                        # Write multiline setting
+                                        multiline_settings.add(setting_key)
+
+                                        # Write setting line
+                                        f.write(
+                                            f"{setting_key} = {setting_value.strip()}\n"
+                                        )
+
+                                        # Write continuation lines
+                                        for ml_line in multiline_lines[1:]:
+                                            f.write(f"{ml_line}\n")
+
+                                        written_settings.setdefault(
+                                            stanza_name, set()
+                                        ).add(setting_key)
+                                        i = (
+                                            j - 1
+                                        )  # Update index to skip processed lines
+
+                        i += 1
+
+                # Process regular settings
+                for setting_key, setting_value in sorted(settings.items()):
+                    if setting_key not in written_settings.get(stanza_name, set()):
+                        f.write(f"{setting_key} = {setting_value}\n")
+                        written_settings.setdefault(stanza_name, set()).add(setting_key)
+
+                # Add blank lines after each stanza
+                f.write("\n\n")
 
     def _merge_file(
         self, local_file: Path, target_file: Optional[Path] = None

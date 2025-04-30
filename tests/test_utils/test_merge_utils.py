@@ -374,3 +374,176 @@ existing_value = default value
         parsed_merged["test"]["multiline_value"]
         == parsed_local["test"]["multiline_value"]
     )
+
+
+def test_merge_complex_multiline_values(tmp_path):
+    """Test merging with complex multiline values from the fixtures."""
+
+    # Create a simple TA directory structure
+    ta_dir = tmp_path / "test_ta"
+    local_dir = ta_dir / "local"
+    default_dir = ta_dir / "default"
+    local_dir.mkdir(parents=True)
+    default_dir.mkdir(parents=True)
+
+    # Create a simpler local file with just one complex multiline value
+    local_file = local_dir / "multiline_test.conf"
+    local_content = """[perfmon]
+EVAL-severity = case( \\
+    match(source, ".*error.*"), \\
+        case( \\
+            match(message, ".*critical.*"), "P1", \\
+            match(message, ".*warning.*"), "P2", \\
+            1==1, "P3" \\
+        ), \\
+    1==1, "info" \\
+)
+disabled = 0
+interval = 60
+"""
+    local_file.write_text(local_content)
+
+    # Create a simple default file
+    default_file = default_dir / "multiline_test.conf"
+    default_content = """[perfmon]
+disabled = 1
+interval = 30
+"""
+    default_file.write_text(default_content)
+
+    # Print initial content for debugging
+    print(f"\nLOCAL CONTENT:\n{local_file.read_text()}")
+    print(f"\nDEFAULT CONTENT (BEFORE):\n{default_file.read_text()}")
+
+    # Parse the local content with the function from change_detection
+    from bydefault.utils.change_detection import _parse_conf_file
+
+    parsed_local = _parse_conf_file(local_file)
+
+    # Merge the files
+    merger = ConfigMerger(ta_dir)
+    result = merger.merge()
+    merger.write()
+
+    # Verify the merge was successful
+    assert result.success
+
+    # Read the merged file
+    merged_content = default_file.read_text()
+    print(f"\nMERGED CONTENT:\n{merged_content}")
+
+    # Parse the merged content
+    parsed_merged = _parse_conf_file(default_file)
+
+    # Check that the multiline value was correctly preserved in the merged content
+    assert "EVAL-severity = case( \\" in merged_content
+    assert 'match(source, ".*error.*"), \\' in merged_content
+    assert "case( \\" in merged_content
+    assert 'match(message, ".*critical.*"), "P1",' in merged_content
+    assert '1==1, "info" \\' in merged_content
+    assert ")" in merged_content
+
+    # Check that the settings were properly merged
+    assert "disabled = 0" in merged_content  # Updated from local
+    assert "interval = 60" in merged_content  # Updated from local
+
+    # Check that we don't have stray settings
+    assert "1 = " not in merged_content
+
+    # Ensure only one stanza
+    stanza_count = merged_content.count("[perfmon]")
+    assert stanza_count == 1, f"Expected 1 stanza, found {stanza_count}"
+
+    # Check that the values parse correctly
+    perfmon_stanza = parsed_merged.get("perfmon", {})
+    assert "EVAL-severity" in perfmon_stanza
+
+    # The parsed value should contain the key parts of the expression
+    eval_severity = perfmon_stanza.get("EVAL-severity", "")
+    assert "case(" in eval_severity
+    assert "match(source" in eval_severity
+    assert "match(message" in eval_severity
+    assert "P1" in eval_severity
+    assert "P2" in eval_severity
+    assert "P3" in eval_severity
+    assert "info" in eval_severity
+
+
+def test_merge_complex_multiline_with_comments(tmp_path):
+    """Test merging with multiline values containing embedded comments and special characters."""
+    # Create a simple TA directory structure
+    ta_dir = tmp_path / "test_ta"
+    local_dir = ta_dir / "local"
+    default_dir = ta_dir / "default"
+    local_dir.mkdir(parents=True)
+    default_dir.mkdir(parents=True)
+
+    # Create a local file with complex multiline values - simplified for testing
+    local_file = local_dir / "complex_multiline.conf"
+    local_content = """[sourcetype::log]
+# This is a multiline setting with embedded comments
+TRANSFORMS-extract = index=main sourcetype=log \\
+# This is a comment inside the multiline value \\
+source="/var/log/*" \\
+# Another comment in the multiline \\
+| rex field=_raw "(?<field>\\w+)=(?<value>[^,]+)"
+
+# Simple value to test normal handling
+disabled = 0
+"""
+    local_file.write_text(local_content)
+
+    # Create a simple default file
+    default_file = default_dir / "complex_multiline.conf"
+    default_content = """[sourcetype::log]
+# Default config
+disabled = 1
+"""
+    default_file.write_text(default_content)
+
+    # Print initial content for debugging
+    print(f"\nLOCAL CONTENT:\n{local_file.read_text()}")
+    print(f"\nDEFAULT CONTENT (BEFORE):\n{default_file.read_text()}")
+
+    # Merge the files
+    merger = ConfigMerger(ta_dir)
+    result = merger.merge()
+    merger.write()
+
+    # Verify the merge was successful
+    assert result.success
+
+    # Read the merged file
+    merged_content = default_file.read_text()
+    print(f"\nMERGED CONTENT:\n{merged_content}")
+
+    # Parse the merged content
+    from bydefault.utils.change_detection import _parse_conf_file
+
+    parsed_merged = _parse_conf_file(default_file)
+
+    # Verify embedded comments in multiline values are preserved
+    assert "# This is a comment inside the multiline value" in merged_content
+    assert "# Another comment in the multiline" in merged_content
+
+    # Verify the multiline format with backslashes is preserved
+    assert "TRANSFORMS-extract = index=main sourcetype=log \\" in merged_content
+
+    # Verify the simple value was updated
+    assert "disabled = 0" in merged_content
+
+    # Make sure there are no duplicate stanzas
+    stanza_count = merged_content.count("[sourcetype::log]")
+    assert stanza_count == 1, f"Expected 1 stanza, found {stanza_count}"
+
+    # Check that duplicate settings are avoided
+    disabled_count = merged_content.count("disabled = 0")
+    assert (
+        disabled_count == 1
+    ), f"Expected 1 occurrence of 'disabled = 0', found {disabled_count}"
+
+    # Make sure the stanza has all expected settings
+    sourcetype_stanza = parsed_merged.get("sourcetype::log", {})
+    assert "TRANSFORMS-extract" in sourcetype_stanza
+    assert "disabled" in sourcetype_stanza
+    assert sourcetype_stanza["disabled"] == "0"  # Updated from local
