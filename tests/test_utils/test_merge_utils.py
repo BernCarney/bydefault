@@ -208,6 +208,22 @@ def test_merger_replace_mode(ta_dir):
     assert "sourcetype" in test_stanza.settings_updated
     assert "disabled" in test_stanza.settings_updated
 
+    # Check that we properly track stanzas that will be replaced
+    assert "monitor://new_input" in inputs_result.new_stanzas
+    assert "monitor://test" in inputs_result.merged_stanzas
+
+    # Verify actual replacement by writing and checking content
+    merger.write()
+    default_inputs = ta_dir / "default" / "inputs.conf"
+    content = default_inputs.read_text()
+
+    # Should only contain content from local file
+    assert "monitor://test" in content
+    assert "monitor://new_input" in content
+    assert "monitor://existing" not in content  # Should be removed
+    assert "sourcetype = test_data" in content  # From local
+    assert "disabled = false" in content  # From local
+
 
 def test_merger_write(ta_dir):
     """Test writing merged changes to files."""

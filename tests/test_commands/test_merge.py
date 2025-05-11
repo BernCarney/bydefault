@@ -286,10 +286,12 @@ def test_merge_replace_mode(ta_dir, mock_console):
     content = default_file.read_text()
     print(f"\nAFTER MERGE - Default content:\n{content}")
 
-    # Check for complete replacement of stanzas
+    # Check for complete replacement with local stanzas only
     assert "monitor://test" in content
     assert "monitor://another" in content  # New stanza from local
-    assert "monitor://existing" in content  # Should still be preserved
+    assert (
+        "monitor://existing" not in content
+    )  # Should be completely replaced, not preserved
 
     # In the test stanza, check that values were completely replaced
     assert "disabled = false" in content  # From local

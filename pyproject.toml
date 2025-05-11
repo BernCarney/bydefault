@@ -33,3 +33,12 @@ select = [
     "I", # isort
     "D", # pydocstyle
 ]
+
+[tool.pytest.ini_options]
+addopts = [
+    "--lf",
+    "--tb=short", 
+    "-q",
+    "--no-header",
+    "--disable-warnings",
+]

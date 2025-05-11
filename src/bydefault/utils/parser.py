@@ -61,76 +61,181 @@ class CommentAwareParser:
                 dict of setting names to Setting objects
         """
         try:
+            # Read the entire file content
             with open(self.file_path, "r", encoding="utf-8") as f:
-                for line in f:
-                    self.line_number += 1
-                    line = line.rstrip("\n")
+                file_content = f.read()
 
-                    # Skip empty lines
-                    if not line:
-                        self.current_blank_lines += 1
-                        continue
+            # Convert any Windows line endings to Unix
+            file_content = file_content.replace("\r\n", "\n")
 
-                    # Reset blank line counter
-                    if self.current_blank_lines > 0:
-                        self.blank_lines.append(self.current_blank_lines)
-                        self.current_blank_lines = 0
+            # Split into lines with line endings preserved
+            lines = file_content.splitlines(keepends=True)
+            i = 0
 
-                    # Check for stanza
-                    stanza_match = self.STANZA_PATTERN.match(line)
-                    if stanza_match:
-                        stanza_name = stanza_match.group(1)
-                        stanza_type = self._classify_stanza(stanza_name)
-                        self.stanza_types[stanza_name] = stanza_type
+            # Process each line
+            while i < len(lines):
+                line = lines[i].rstrip("\n")
+                self.line_number = i + 1
 
-                        # Create new stanza
-                        self.current_stanza = Stanza(
-                            name=stanza_name,
-                            type=stanza_type,
-                            line_number=self.line_number,
-                            comments=self.comments.copy(),
-                            blank_lines_after=self.blank_lines.copy(),
-                        )
-                        self.stanzas[stanza_name] = self.current_stanza
-                        self.comments = []
-                        self.blank_lines = []
-                        continue
+                # Skip empty lines but count them
+                if not line.strip():
+                    self.current_blank_lines += 1
+                    i += 1
+                    continue
 
-                    # Check for setting
-                    setting_match = self.SETTING_PATTERN.match(line)
-                    if setting_match:
-                        key = setting_match.group(1)
-                        value = setting_match.group(2)
+                # Reset blank line counter if we have accumulated any
+                if self.current_blank_lines > 0:
+                    self.blank_lines.append(self.current_blank_lines)
+                    self.current_blank_lines = 0
 
-                        # Create setting
-                        setting = Setting(
-                            key=key,
-                            value=value,
-                            line_number=self.line_number,
-                            comments=self.comments.copy(),
-                        )
+                # Check for stanza
+                stanza_match = self.STANZA_PATTERN.match(line)
+                if stanza_match:
+                    stanza_name = stanza_match.group(1)
+                    stanza_type = self._classify_stanza(stanza_name)
+                    self.stanza_types[stanza_name] = stanza_type
 
-                        # Add to current stanza or global settings
-                        if self.current_stanza:
-                            self.current_stanza.settings[key] = setting
-                        else:
-                            self.global_settings[key] = setting
+                    # Create new stanza
+                    self.current_stanza = Stanza(
+                        name=stanza_name,
+                        type=stanza_type,
+                        line_number=self.line_number,
+                        comments=self.comments.copy(),
+                        blank_lines_after=self.blank_lines.copy(),
+                    )
+                    self.stanzas[stanza_name] = self.current_stanza
+                    self.comments = []
+                    self.blank_lines = []
+                    i += 1
+                    continue
 
-                        self.comments = []
-                        continue
+                # Check for setting
+                setting_match = self.SETTING_PATTERN.match(line)
+                if setting_match:
+                    setting_key = setting_match.group(1).strip()
+                    setting_value = setting_match.group(2).strip()
+                    start_line_idx = i
 
-                    # Check for comment
-                    comment_match = self.COMMENT_PATTERN.match(line)
-                    if comment_match:
-                        comment = comment_match.group(1)
-                        self.comments.append(comment)
-                        continue
+                    # Detect if this is a multiline setting
+                    multiline = setting_value.endswith("\\")
+
+                    # Store the raw content with exact formatting
+                    raw_content = lines[i]
+
+                    # If multiline, collect all continuation lines
+                    if multiline:
+                        inside_multiline = True
+                        j = i + 1
+
+                        while j < len(lines) and inside_multiline:
+                            next_line = lines[j]
+                            next_line_stripped = next_line.strip()
+
+                            # Empty lines or comments within a multiline value
+                            if not next_line_stripped or next_line_stripped.startswith(
+                                "#"
+                            ):
+                                raw_content += next_line
+                                j += 1
+                                continue
+
+                            # Check if we've hit a new stanza
+                            if self.STANZA_PATTERN.match(next_line_stripped):
+                                inside_multiline = False
+                                break
+
+                            # Check for a new setting (begins with a word followed by =)
+                            # But exclude lines that are indented, which are continuations
+                            if self.SETTING_PATTERN.match(
+                                next_line_stripped
+                            ) and not next_line.startswith((" ", "\t")):
+                                inside_multiline = False
+                                break
+
+                            # Add to raw content
+                            raw_content += next_line
+
+                            # If the line doesn't end with backslash, check next line
+                            if not next_line_stripped.endswith("\\"):
+                                # Look ahead to see if next non-empty, non-comment line
+                                # is a new setting/stanza or continues this multi-line
+                                k = j + 1
+                                found_next_content = False
+
+                                while k < len(lines) and not found_next_content:
+                                    peek_line = lines[k].strip()
+                                    if not peek_line or peek_line.startswith("#"):
+                                        # Skip empty lines and comments
+                                        k += 1
+                                        continue
+
+                                    # Found next content line
+                                    found_next_content = True
+
+                                    # If it's a new stanza or setting, we're done
+                                    if self.STANZA_PATTERN.match(peek_line) or (
+                                        self.SETTING_PATTERN.match(peek_line)
+                                        and not lines[k].startswith((" ", "\t"))
+                                    ):
+                                        inside_multiline = False
+
+                                    break
+
+                                if not inside_multiline:
+                                    break
+
+                            j += 1
+
+                        # Update our position
+                        i = j
+                    else:
+                        # Single line setting
+                        i += 1
+
+                    # Create the setting
+                    setting = Setting(
+                        key=setting_key,
+                        value=setting_value,
+                        line_number=start_line_idx + 1,  # 1-indexed
+                        comments=self.comments.copy(),
+                        raw_content=raw_content,
+                    )
+
+                    # Add to the appropriate location
+                    if self.current_stanza:
+                        self.current_stanza.settings[setting_key] = setting
+                    else:
+                        self.global_settings[setting_key] = setting
+
+                    # Clear comments for next setting
+                    self.comments = []
+                    continue
+
+                # Check for comment
+                comment_match = self.COMMENT_PATTERN.match(line)
+                if comment_match:
+                    comment = comment_match.group(1)
+                    self.comments.append(comment)
+                    i += 1
+                    continue
+
+                # Unrecognized line
+                i += 1
 
             # For debugging - only show in verbose mode
             if self.verbose:
                 print("Stanza Types:")
                 for name, typ in self.stanza_types.items():
                     print(f"  {name}: {typ}")
+
+                print("\nMultiline Settings:")
+                for stanza_name, stanza in self.stanzas.items():
+                    for key, setting in stanza.settings.items():
+                        if (
+                            hasattr(setting, "raw_content")
+                            and "\\" in setting.raw_content
+                        ):
+                            print(f"  [{stanza_name}] {key}")
 
             return self.stanzas, self.global_settings
 

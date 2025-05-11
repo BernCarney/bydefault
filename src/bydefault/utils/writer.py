@@ -288,7 +288,24 @@ class SortedConfigWriter:
         """
         # Write the setting
         if setting.key and setting.value is not None:
-            self.output_lines.append(f"{setting.key} = {setting.value}\n")
+            # Check if this is a multi-line value (ends with backslash)
+            is_multiline = False
+
+            if isinstance(setting.value, str):
+                # Check for backslash at the end or within the value
+                if setting.value.strip().endswith("\\") or " \\" in setting.value:
+                    is_multiline = True
+
+            if is_multiline and hasattr(setting, "raw_content") and setting.raw_content:
+                # Use the original raw content to preserve exact formatting
+                # Ensure it ends with a newline
+                content = setting.raw_content
+                if not content.endswith("\n"):
+                    content += "\n"
+                self.output_lines.append(content)
+            else:
+                # Regular single-line setting
+                self.output_lines.append(f"{setting.key} = {setting.value}\n")
         elif setting.key:
             # Handle settings with no value
             self.output_lines.append(f"{setting.key}\n")
