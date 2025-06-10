@@ -179,21 +179,24 @@ class ConfigMerger:
         """
         merged_config = {}
 
-        # Start with all settings from default
-        for stanza_name, settings in default_parsed.items():
-            merged_config[stanza_name] = settings.copy()
-
-        # Add or update settings from local based on merge mode
-        for stanza_name, settings in local_parsed.items():
-            # If stanza doesn't exist in merged_config, add it
-            if stanza_name not in merged_config:
-                merged_config[stanza_name] = {}
-
-            # Replace or merge settings based on mode
-            if self.mode == MergeMode.REPLACE:
-                # Replace entire stanza with local version
+        # In REPLACE mode, we need to handle stanza name changes as well
+        if self.mode == MergeMode.REPLACE:
+            # For REPLACE mode, completely replace default with local
+            # by taking only stanzas from local
+            for stanza_name, settings in local_parsed.items():
                 merged_config[stanza_name] = settings.copy()
-            else:
+        else:
+            # For MERGE mode:
+            # 1. Start with all settings from default
+            for stanza_name, settings in default_parsed.items():
+                merged_config[stanza_name] = settings.copy()
+
+            # 2. Add or update settings from local based on merge mode
+            for stanza_name, settings in local_parsed.items():
+                # If stanza doesn't exist in merged_config, add it
+                if stanza_name not in merged_config:
+                    merged_config[stanza_name] = {}
+
                 # Update settings from local
                 for setting_key, setting_value in settings.items():
                     merged_config[stanza_name][setting_key] = setting_value
@@ -212,6 +215,106 @@ class ConfigMerger:
         # List of settings to avoid duplicates
         written_settings = {}
 
+        # Dictionary to store multiline values with their original formatting
+        # Key format: stanza_name::setting_key
+        formatted_multiline_values = {}
+
+        # First, extract all multiline values from the local content with their exact formatting
+        for stanza_name, settings in merged_config.items():
+            # Try to find the stanza in the local content
+            stanza_pattern = rf"\[{re.escape(stanza_name)}\](.*?)(?=\n\[|\Z)"
+            stanza_matches = re.search(stanza_pattern, local_content, re.DOTALL)
+
+            if not stanza_matches:
+                continue
+
+            stanza_content = stanza_matches.group(1)
+            lines = stanza_content.split("\n")
+
+            i = 0
+            while i < len(lines):
+                line = lines[i].strip()
+
+                # Skip empty lines and standalone comments
+                if not line or (line.startswith("#") and "=" not in line):
+                    i += 1
+                    continue
+
+                # Check if this is a setting line
+                if "=" in line and not line.startswith("#"):
+                    setting_key, setting_value = line.split("=", 1)
+                    setting_key = setting_key.strip()
+
+                    # Only process if setting exists in our merged config
+                    if setting_key in settings:
+                        # Check if this is a multiline setting
+                        if setting_value.strip().endswith("\\"):
+                            # Start collecting the multiline value with exact formatting
+                            original_lines = [
+                                lines[i]
+                            ]  # Use the original line with indentation
+                            j = i + 1
+
+                            # Track if we've found the end of the multiline value
+                            multiline_ended = False
+
+                            # Collect all continuation lines
+                            while j < len(lines) and not multiline_ended:
+                                next_line = lines[j]
+                                next_line_stripped = next_line.strip()
+
+                                # Empty lines within a multiline value are kept
+                                if not next_line_stripped:
+                                    original_lines.append(next_line)
+                                    j += 1
+                                    continue
+
+                                # Handle comments within multiline value
+                                if next_line_stripped.startswith("#"):
+                                    original_lines.append(next_line)
+                                    j += 1
+                                    continue
+
+                                # Check if this is a new setting (contains = at first position)
+                                if "=" in next_line_stripped and not any(
+                                    c.isspace()
+                                    for c in next_line_stripped.split("=", 1)[0]
+                                ):
+                                    # This is a new setting, not continuation
+                                    if not next_line_stripped.endswith("\\"):
+                                        multiline_ended = True
+                                        break
+
+                                # Check if this is a new stanza
+                                if next_line_stripped.startswith(
+                                    "["
+                                ) and next_line_stripped.endswith("]"):
+                                    multiline_ended = True
+                                    break
+
+                                # Add this line to our multiline value
+                                original_lines.append(next_line)
+
+                                # If the line doesn't end with \, we've reached the end of multiline
+                                # unless it's a comment
+                                if not next_line_stripped.endswith(
+                                    "\\"
+                                ) and not next_line_stripped.startswith("#"):
+                                    multiline_ended = True
+
+                                j += 1
+
+                            # Store the original multiline format
+                            multiline_key = f"{stanza_name}::{setting_key}"
+                            formatted_multiline_values[multiline_key] = "\n".join(
+                                original_lines
+                            )
+
+                            # Skip ahead
+                            i = j if multiline_ended else j - 1
+
+                i += 1
+
         with open(output_file, "w", encoding="utf-8") as f:
             # Process each stanza
             for stanza_name, settings in merged_config.items():
@@ -219,80 +322,26 @@ class ConfigMerger:
                 f.write(f"[{stanza_name}]\n")
                 written_settings[stanza_name] = set()
 
-                # First directly process multiline values from the local file
-                multiline_settings = set()
+                # Process each setting in the stanza
+                for setting_key, setting_value in settings.items():
+                    # Check if we already wrote this setting
+                    if setting_key in written_settings[stanza_name]:
+                        continue
 
-                # Directly find multiline settings in the local file
-                stanza_pattern = rf"\[{re.escape(stanza_name)}\](.*?)(?=\n\[|\Z)"
-                stanza_matches = re.search(stanza_pattern, local_content, re.DOTALL)
-
-                if stanza_matches:
-                    stanza_content = stanza_matches.group(1)
-                    # Find individual settings with continuation characters
-                    lines = stanza_content.split("\n")
-                    i = 0
-
-                    while i < len(lines):
-                        line = lines[i].strip()
-
-                        # Check if this is a setting line
-                        if "=" in line and not line.startswith("#"):
-                            setting_key, setting_value = line.split("=", 1)
-                            setting_key = setting_key.strip()
-
-                            # Only process settings that are in our merged config
-                            if setting_key in settings:
-                                # Check if this is potentially a multiline setting
-                                if "\\" in setting_value:
-                                    # This is a multiline setting
-                                    multiline_lines = [line]
-
-                                    # Collect all continuation lines
-                                    j = i + 1
-                                    current_line = line
-
-                                    while j < len(lines) and (
-                                        "\\" in current_line or j == i + 1
-                                    ):
-                                        current_line = lines[j].strip()
-                                        if not current_line.startswith(
-                                            "["
-                                        ):  # Not a new stanza
-                                            multiline_lines.append(current_line)
-                                            j += 1
-                                        else:
-                                            break
-
-                                    if len(multiline_lines) > 1:
-                                        # Write multiline setting
-                                        multiline_settings.add(setting_key)
-
-                                        # Write setting line
-                                        f.write(
-                                            f"{setting_key} = {setting_value.strip()}\n"
-                                        )
-
-                                        # Write continuation lines
-                                        for ml_line in multiline_lines[1:]:
-                                            f.write(f"{ml_line}\n")
-
-                                        written_settings.setdefault(
-                                            stanza_name, set()
-                                        ).add(setting_key)
-                                        i = (
-                                            j - 1
-                                        )  # Update index to skip processed lines
-
-                        i += 1
-
-                # Process regular settings
-                for setting_key, setting_value in sorted(settings.items()):
-                    if setting_key not in written_settings.get(stanza_name, set()):
+                    # Check if we have a formatted multiline version
+                    multiline_key = f"{stanza_name}::{setting_key}"
+                    if multiline_key in formatted_multiline_values:
+                        # Write the formatted multiline value
+                        f.write(formatted_multiline_values[multiline_key] + "\n")
+                    else:
+                        # Write as a regular setting
                         f.write(f"{setting_key} = {setting_value}\n")
-                        written_settings.setdefault(stanza_name, set()).add(setting_key)
 
-                # Add blank lines after each stanza
-                f.write("\n\n")
+                    # Mark as written
+                    written_settings[stanza_name].add(setting_key)
+
+                # Add a blank line after each stanza
+                f.write("\n")
 
     def _merge_file(
         self, local_file: Path, target_file: Optional[Path] = None
@@ -403,7 +452,8 @@ class ConfigMerger:
                 return result
 
             if self.mode == MergeMode.REPLACE:
-                # Replace mode: use only local settings
+                # Replace mode: Consider all local settings as updates
+                # This will completely replace the default stanza
                 result.settings_updated.update(local_stanza.settings.keys())
                 return result
 

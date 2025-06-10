@@ -54,12 +54,14 @@ class Setting:
         value: The value
         line_number: The line number of the setting
         comments: Comments associated with this setting
+        raw_content: Original raw content for multi-line values
     """
 
     key: str
     value: str
     line_number: int
     comments: List[Comment] = field(default_factory=list)
+    raw_content: Optional[str] = None
 
 
 @dataclass
