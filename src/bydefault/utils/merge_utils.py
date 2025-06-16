@@ -331,10 +331,18 @@ class ConfigMerger:
         from bydefault.utils.change_detection import _parse_conf_file
 
         try:
-            with open(self.local_dir / output_file.name, "r", encoding="utf-8") as f:
-                local_content_actual = f.read()
-            local_parsed = _parse_conf_file(self.local_dir / output_file.name)
-            local_stanzas = set(local_parsed.keys())
+            # For metadata files, we need to use the actual local file path
+            if output_file.name == "default.meta" and "metadata" in str(output_file):
+                local_file_path = output_file.parent / "local.meta"
+            else:
+                local_file_path = self.local_dir / output_file.name
+
+            if local_file_path.exists():
+                local_parsed = _parse_conf_file(local_file_path)
+                local_stanzas = set(local_parsed.keys())
+            else:
+                local_parsed = {}
+                local_stanzas = set()
         except:
             local_parsed = {}
             local_stanzas = set()
