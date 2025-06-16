@@ -122,6 +122,10 @@ class ConfigMerger:
                 with open(local_file, "r", encoding="utf-8") as f:
                     local_content = f.read()
 
+                # Read the full default file content for multiline detection
+                with open(default_file, "r", encoding="utf-8") as f:
+                    default_content = f.read()
+
                 # Create a backup of the default file
                 default_backup = None
                 try:
@@ -142,7 +146,9 @@ class ConfigMerger:
 
                 try:
                     # Write merged configuration to file
-                    self._write_merged_file(default_file, merged_config, local_content)
+                    self._write_merged_file(
+                        default_file, merged_config, local_content, default_content
+                    )
 
                     # Delete backup if all went well
                     if default_backup and default_backup.exists():
@@ -203,13 +209,16 @@ class ConfigMerger:
 
         return merged_config
 
-    def _write_merged_file(self, output_file, merged_config, local_content):
+    def _write_merged_file(
+        self, output_file, merged_config, local_content, default_content
+    ):
         """Write the merged configuration to a file.
 
         Args:
             output_file: Path to the output file
             merged_config: Dictionary containing the merged configuration
             local_content: String containing the local file content for multiline detection
+            default_content: String containing the default file content for multiline detection
         """
 
         # List of settings to avoid duplicates
@@ -219,105 +228,162 @@ class ConfigMerger:
         # Key format: stanza_name::setting_key
         formatted_multiline_values = {}
 
-        # First, extract all multiline values from the local content with their exact formatting
-        for stanza_name, settings in merged_config.items():
-            # Try to find the stanza in the local content
-            stanza_pattern = rf"\[{re.escape(stanza_name)}\](.*?)(?=\n\[|\Z)"
-            stanza_matches = re.search(stanza_pattern, local_content, re.DOTALL)
+        # Helper function to extract multiline values from content
+        def extract_multiline_values(content, target_config):
+            extracted_values = {}
+            for stanza_name, settings in target_config.items():
+                # Try to find the stanza in the content
+                stanza_pattern = rf"\[{re.escape(stanza_name)}\](.*?)(?=\n\[|\Z)"
+                stanza_matches = re.search(stanza_pattern, content, re.DOTALL)
 
-            if not stanza_matches:
-                continue
-
-            stanza_content = stanza_matches.group(1)
-            lines = stanza_content.split("\n")
-
-            i = 0
-            while i < len(lines):
-                line = lines[i].strip()
-
-                # Skip empty lines and standalone comments
-                if not line or (line.startswith("#") and "=" not in line):
-                    i += 1
+                if not stanza_matches:
                     continue
 
-                # Check if this is a setting line
-                if "=" in line and not line.startswith("#"):
-                    setting_key, setting_value = line.split("=", 1)
-                    setting_key = setting_key.strip()
+                stanza_content = stanza_matches.group(1)
+                lines = stanza_content.split("\n")
 
-                    # Only process if setting exists in our merged config
-                    if setting_key in settings:
-                        # Check if this is a multiline setting
-                        if setting_value.strip().endswith("\\"):
-                            # Start collecting the multiline value with exact formatting
-                            original_lines = [
-                                lines[i]
-                            ]  # Use the original line with indentation
-                            j = i + 1
+                i = 0
+                while i < len(lines):
+                    line = lines[i].strip()
 
-                            # Track if we've found the end of the multiline value
-                            multiline_ended = False
+                    # Skip empty lines and standalone comments
+                    if not line or (line.startswith("#") and "=" not in line):
+                        i += 1
+                        continue
 
-                            # Collect all continuation lines
-                            while j < len(lines) and not multiline_ended:
-                                next_line = lines[j]
-                                next_line_stripped = next_line.strip()
+                    # Check if this is a setting line
+                    if "=" in line and not line.startswith("#"):
+                        setting_key, setting_value = line.split("=", 1)
+                        setting_key = setting_key.strip()
 
-                                # Empty lines within a multiline value are kept
-                                if not next_line_stripped:
-                                    original_lines.append(next_line)
-                                    j += 1
-                                    continue
+                        # Only process if setting exists in our merged config
+                        if setting_key in settings:
+                            # Check if this is a multiline setting
+                            if setting_value.strip().endswith("\\"):
+                                # Start collecting the multiline value with exact formatting
+                                original_lines = [
+                                    lines[i]
+                                ]  # Use the original line with indentation
+                                j = i + 1
 
-                                # Handle comments within multiline value
-                                if next_line_stripped.startswith("#"):
-                                    original_lines.append(next_line)
-                                    j += 1
-                                    continue
+                                # Track if we've found the end of the multiline value
+                                multiline_ended = False
 
-                                # Check if this is a new setting (contains = at first position)
-                                if "=" in next_line_stripped and not any(
-                                    c.isspace()
-                                    for c in next_line_stripped.split("=", 1)[0]
-                                ):
-                                    # This is a new setting, not continuation
-                                    if not next_line_stripped.endswith("\\"):
+                                # Collect all continuation lines
+                                while j < len(lines) and not multiline_ended:
+                                    next_line = lines[j]
+                                    next_line_stripped = next_line.strip()
+
+                                    # Empty lines within a multiline value are kept
+                                    if not next_line_stripped:
+                                        original_lines.append(next_line)
+                                        j += 1
+                                        continue
+
+                                    # Handle comments within multiline value
+                                    if next_line_stripped.startswith("#"):
+                                        original_lines.append(next_line)
+                                        j += 1
+                                        continue
+
+                                    # Check if this is a new setting (contains = at first position)
+                                    if "=" in next_line_stripped and not any(
+                                        c.isspace()
+                                        for c in next_line_stripped.split("=", 1)[0]
+                                    ):
+                                        # This is a new setting, not continuation
+                                        if not next_line_stripped.endswith("\\"):
+                                            multiline_ended = True
+                                            break
+
+                                    # Check if this is a new stanza
+                                    if next_line_stripped.startswith(
+                                        "["
+                                    ) and next_line_stripped.endswith("]"):
                                         multiline_ended = True
                                         break
 
-                                # Check if this is a new stanza
-                                if next_line_stripped.startswith(
-                                    "["
-                                ) and next_line_stripped.endswith("]"):
-                                    multiline_ended = True
-                                    break
+                                    # Add this line to our multiline value
+                                    original_lines.append(next_line)
 
-                                # Add this line to our multiline value
-                                original_lines.append(next_line)
+                                    # If the line doesn't end with \, we've reached the end of multiline
+                                    # unless it's a comment
+                                    if not next_line_stripped.endswith(
+                                        "\\"
+                                    ) and not next_line_stripped.startswith("#"):
+                                        multiline_ended = True
 
-                                # If the line doesn't end with \, we've reached the end of multiline
-                                # unless it's a comment
-                                if not next_line_stripped.endswith(
-                                    "\\"
-                                ) and not next_line_stripped.startswith("#"):
-                                    multiline_ended = True
+                                    j += 1
 
-                                j += 1
+                                # Store the original multiline format
+                                multiline_key = f"{stanza_name}::{setting_key}"
+                                extracted_values[multiline_key] = "\n".join(
+                                    original_lines
+                                )
 
-                            # Store the original multiline format
-                            multiline_key = f"{stanza_name}::{setting_key}"
-                            formatted_multiline_values[multiline_key] = "\n".join(
-                                original_lines
-                            )
+                                # Skip ahead
+                                i = j if multiline_ended else j - 1
 
-                            # Skip ahead
-                            i = j if multiline_ended else j - 1
+                    i += 1
+            return extracted_values
 
-                i += 1
+        # Parse local file to get which stanzas exist in local
+        from bydefault.utils.change_detection import _parse_conf_file
+
+        try:
+            # For metadata files, we need to use the actual local file path
+            if output_file.name == "default.meta" and "metadata" in str(output_file):
+                local_file_path = output_file.parent / "local.meta"
+            else:
+                local_file_path = self.local_dir / output_file.name
+
+            if local_file_path.exists():
+                local_parsed = _parse_conf_file(local_file_path)
+                local_stanzas = set(local_parsed.keys())
+            else:
+                local_parsed = {}
+                local_stanzas = set()
+        except:
+            local_parsed = {}
+            local_stanzas = set()
+
+        # Extract multiline values from both local and default content
+        # First extract from local content (these take priority)
+        formatted_multiline_values.update(
+            extract_multiline_values(local_content, merged_config)
+        )
+
+        # For stanzas that don't exist in local, extract from default content
+        default_only_config = {
+            name: settings
+            for name, settings in merged_config.items()
+            if name not in local_stanzas
+        }
+        default_multiline_values = extract_multiline_values(
+            default_content, default_only_config
+        )
+        for key, value in default_multiline_values.items():
+            if key not in formatted_multiline_values:
+                formatted_multiline_values[key] = value
 
         with open(output_file, "w", encoding="utf-8") as f:
             # Process each stanza
             for stanza_name, settings in merged_config.items():
+                # Check if this is a default-only stanza
+                if stanza_name not in local_stanzas:
+                    # For default-only stanzas, preserve original content entirely
+                    stanza_pattern = rf"\[{re.escape(stanza_name)}\](.*?)(?=\n\[|\Z)"
+                    stanza_match = re.search(stanza_pattern, default_content, re.DOTALL)
+                    if stanza_match:
+                        # Write the original stanza header and content
+                        f.write(f"[{stanza_name}]\n")
+                        original_content = stanza_match.group(1).rstrip()
+                        if original_content:
+                            f.write(original_content + "\n")
+                        f.write("\n")
+                        continue
+
+                # For stanzas that exist in both local and default, do normal merge
                 # Write stanza header
                 f.write(f"[{stanza_name}]\n")
                 written_settings[stanza_name] = set()
